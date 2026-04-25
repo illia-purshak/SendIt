@@ -1,6 +1,7 @@
 import * as RadixToast from '@radix-ui/react-toast'
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { UiColor } from '../ui.config'
+import { toastStore } from '@/store/toastStore'
 
 interface ToastItem {
   id: string
@@ -34,6 +35,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const id = Math.random().toString(36).slice(2, 9)
     setToasts(prev => [...prev, { id, ...options }])
   }
+
+  useEffect(() => {
+    toastStore.register(toast)
+  }, [])
 
   function dismiss(id: string) {
     setToasts(prev => prev.filter(t => t.id !== id))
