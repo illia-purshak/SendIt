@@ -12,4 +12,9 @@ export const API_ROUTES = {
       organization: '/auth/complete-profile/organization',
     },
   },
+  parcelTemplates: {
+    list: '/parcel-templates',
+    detail: (id: number) => `/parcel-templates/${id}`,
+    setDefault: (id: number) => `/parcel-templates/${id}/set-default`,
+  },
 } as const

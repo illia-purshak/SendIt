@@ -1,4 +1,4 @@
-import type { ToastOptions } from '@/components/Toast'
+import type { ToastOptions } from '@/components/Toast/toast-context'
 
 type ToastFn = (options: ToastOptions) => void
 

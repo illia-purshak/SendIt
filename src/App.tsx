@@ -8,7 +8,10 @@ import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
 import CompleteProfilePage from "@/pages/complete-profile";
 import HomePage from "@/pages/home";
+import ParcelTemplatesPage from "@/pages/parcel-templates";
+import ParcelTemplateFormPage from "@/pages/ParcelTemplateForm/parcel-template-form";
 import { Spinner } from "./components/Loader/Spinner";
+import { MainLayout } from "./layouts/MainLayout";
 
 export const RequireAuth = () => {
   const { user, loading } = useAuthContext();
@@ -80,11 +83,25 @@ function AppRoutes() {
 
       <Route path={APP_ROUTES.uiKit} element={<UiKitPage />} />
       <Route element={<RequireAuth />}>
-        <Route
-          path={APP_ROUTES.completeProfile}
-          element={<CompleteProfilePage />}
-        />
-        <Route path={APP_ROUTES.home} element={<HomePage />} />
+        <Route element={<MainLayout />}>
+          <Route
+            path={APP_ROUTES.completeProfile}
+            element={<CompleteProfilePage />}
+          />
+          <Route path={APP_ROUTES.home} element={<HomePage />} />
+          <Route
+            path={APP_ROUTES.parcelTemplates}
+            element={<ParcelTemplatesPage />}
+          />
+          <Route
+            path={APP_ROUTES.newParcelTemplate}
+            element={<ParcelTemplateFormPage />}
+          />
+          <Route
+            path={APP_ROUTES.editParcelTemplate}
+            element={<ParcelTemplateFormPage />}
+          />
+        </Route>
       </Route>
     </Routes>
   );

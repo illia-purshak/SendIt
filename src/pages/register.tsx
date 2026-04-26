@@ -1,75 +1,81 @@
-import { useEffect, useState } from 'react'
-import { useForm } from '@tanstack/react-form'
-import { Link, useNavigate } from 'react-router-dom'
-import { Button } from '@/components/Button'
-import { Input } from '@/components/Input'
-import { RadioGroup, RadioItem } from '@/components/Radio'
-import { APP_ROUTES } from '@/constants/app-routes'
-import { useAuth } from '@/hooks/useAuth'
-import { validateEmail, validatePhone, validatePassword, passwordRules } from '@/utils/validation'
-import type { UserType } from '@/types/auth'
+import { useEffect, useState } from "react";
+import { useForm, Controller, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/Button";
+import { Input } from "@/components/Input";
+import { RadioGroup, RadioItem } from "@/components/Radio";
+import { APP_ROUTES } from "@/constants/app-routes";
+import { useAuth } from "@/hooks/useAuth";
+import { registerSchema, passwordRules } from "@/validation/auth";
+import type { z } from "zod";
+import type { UserType } from "@/types/auth";
+
+type RegisterValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
-  const { register, user } = useAuth()
-  const navigate = useNavigate()
-  const [error, setError] = useState<string | null>(null)
+  const { register: registerUser, user } = useAuth();
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return
+    if (!user) return;
     navigate(
       user.profileCompleted ? APP_ROUTES.home : APP_ROUTES.completeProfile,
       { replace: true },
-    )
-  }, [navigate, user])
+    );
+  }, [navigate, user]);
 
-  const form = useForm({
+  const {
+    control,
+    handleSubmit,
+    formState: { isSubmitting },
+  } = useForm<RegisterValues>({
+    resolver: zodResolver(registerSchema),
     defaultValues: {
-      type: 'INDIVIDUAL' as UserType,
-      email: '',
-      phone: '',
-      password: '',
+      type: "INDIVIDUAL",
+      email: "",
+      phone: "",
+      password: "",
     },
-    onSubmit: async ({ value }) => {
-      setError(null)
+  });
 
-      const emailErr = validateEmail(value.email)
-      if (emailErr) { setError(emailErr); return }
+  const password = useWatch({
+    control,
+    name: "password",
+  });
 
-      if (value.phone) {
-        const phoneErr = validatePhone(value.phone)
-        if (phoneErr) { setError(phoneErr); return }
-      }
-
-      const passErr = validatePassword(value.password)
-      if (passErr) { setError(passErr); return }
-
-      const err = await register({
-        type: value.type,
-        email: value.email,
-        phone: value.phone || undefined,
-        password: value.password,
-      })
-      if (err) { setError(err); return }
-    },
-  })
+  async function onSubmit(values: RegisterValues) {
+    setError(null);
+    const err = await registerUser({
+      type: values.type,
+      email: values.email,
+      phone: values.phone || undefined,
+      password: values.password,
+    });
+    if (err) setError(err);
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-12">
       <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
-        <h1 className="mb-1 text-2xl font-semibold text-neutral-900">Create account</h1>
+        <h1 className="mb-1 text-2xl font-semibold text-neutral-900">
+          Create account
+        </h1>
         <p className="mb-6 text-sm text-neutral-500">Join SendIt today</p>
 
-        <form
-          onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}
-          className="flex flex-col gap-4"
-        >
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-gray-700">Account type</span>
-            <form.Field name="type">
-              {(field) => (
+            <span className="text-sm font-medium text-gray-700">
+              Account type
+            </span>
+            <Controller
+              control={control}
+              name="type"
+              render={({ field }) => (
                 <RadioGroup
-                  value={field.state.value}
-                  onValueChange={(v) => field.handleChange(v as UserType)}
+                  value={field.value}
+                  onValueChange={(v) => field.onChange(v as UserType)}
                   color="green"
                   className="flex-row gap-6"
                 >
@@ -77,59 +83,73 @@ export default function RegisterPage() {
                   <RadioItem value="ORGANIZATION" label="Organization" />
                 </RadioGroup>
               )}
-            </form.Field>
+            />
           </div>
 
-          <form.Field name="email">
-            {(field) => (
+          <Controller
+            control={control}
+            name="email"
+            render={({ field, fieldState }) => (
               <Input
                 label="Email"
                 type="email"
                 placeholder="you@example.com"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
                 color="green"
+                error={fieldState.error?.message}
                 required
               />
             )}
-          </form.Field>
+          />
 
-          <form.Field name="phone">
-            {(field) => (
+          <Controller
+            control={control}
+            name="phone"
+            render={({ field, fieldState }) => (
               <Input
                 label="Phone (optional)"
                 type="tel"
                 placeholder="+380501234567"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
                 color="green"
+                error={fieldState.error?.message}
               />
             )}
-          </form.Field>
+          />
 
-          <form.Field name="password">
-            {(field) => (
+          <Controller
+            control={control}
+            name="password"
+            render={({ field, fieldState }) => (
               <div className="flex flex-col gap-1.5">
                 <Input
                   label="Password"
                   type="password"
                   placeholder="••••••••"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
                   color="green"
+                  error={fieldState.error?.message}
                   required
                 />
-                {field.state.value && (
+                {password && (
                   <div className="flex flex-wrap gap-x-4 gap-y-1 pt-0.5">
                     {passwordRules.map((rule) => (
                       <span
                         key={rule.label}
                         className={[
-                          'flex items-center gap-1 text-xs',
-                          rule.test(field.state.value) ? 'text-green-700' : 'text-neutral-400',
-                        ].join(' ')}
+                          "flex items-center gap-1 text-xs",
+                          rule.test(password)
+                            ? "text-green-700"
+                            : "text-neutral-400",
+                        ].join(" ")}
                       >
-                        <span>{rule.test(field.state.value) ? '✓' : '○'}</span>
+                        <span>{rule.test(password) ? "✓" : "○"}</span>
                         {rule.label}
                       </span>
                     ))}
@@ -137,28 +157,34 @@ export default function RegisterPage() {
                 )}
               </div>
             )}
-          </form.Field>
+          />
 
           {error && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </p>
           )}
 
-          <form.Subscribe selector={(s) => s.isSubmitting}>
-            {(isSubmitting) => (
-              <Button type="submit" color="green" className="mt-1 w-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Creating account…' : 'Create account'}
-              </Button>
-            )}
-          </form.Subscribe>
+          <Button
+            type="submit"
+            color="green"
+            className="mt-1 w-full"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Creating account…" : "Create account"}
+          </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-neutral-500">
-          Already have an account?{' '}
-          <Link to={APP_ROUTES.login} className="font-medium text-green-700 hover:underline">
+          Already have an account?{" "}
+          <Link
+            to={APP_ROUTES.login}
+            className="font-medium text-green-700 hover:underline"
+          >
             Sign in
           </Link>
         </p>
       </div>
     </div>
-  )
+  );
 }

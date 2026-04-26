@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react'
-import { useForm } from '@tanstack/react-form'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Input } from '@/components/Input'
 import { APP_ROUTES } from '@/constants/app-routes'
 import { useAuth } from '@/hooks/useAuth'
+import { loginSchema } from '@/validation/auth'
+import type { z } from 'zod'
+
+type LoginValues = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
   const { login, user } = useAuth()
@@ -19,14 +24,16 @@ export default function LoginPage() {
     )
   }, [navigate, user])
 
-  const form = useForm({
+  const { control, handleSubmit, formState: { isSubmitting } } = useForm<LoginValues>({
+    resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
-    onSubmit: async ({ value }) => {
-      setError(null)
-      const err = await login(value.email, value.password)
-      if (err) { setError(err); return }
-    },
   })
+
+  async function onSubmit(values: LoginValues) {
+    setError(null)
+    const err = await login(values.email, values.password)
+    if (err) setError(err)
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
@@ -34,23 +41,24 @@ export default function LoginPage() {
         <h1 className="mb-1 text-2xl font-semibold text-neutral-900">Sign in</h1>
         <p className="mb-6 text-sm text-neutral-500">Welcome back to SendIt</p>
 
-        <form
-          onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}
-          className="flex flex-col gap-4"
-        >
-          <form.Field name="email">
-            {(field) => (
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <Controller
+            control={control}
+            name="email"
+            render={({ field, fieldState }) => (
               <Input
                 label="Email"
                 type="email"
                 placeholder="you@example.com"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
                 color="green"
+                error={fieldState.error?.message}
                 required
               />
             )}
-          </form.Field>
+          />
 
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
@@ -59,31 +67,31 @@ export default function LoginPage() {
                 Forgot password?
               </Link>
             </div>
-            <form.Field name="password">
-              {(field) => (
+            <Controller
+              control={control}
+              name="password"
+              render={({ field, fieldState }) => (
                 <Input
                   type="password"
                   placeholder="••••••••"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
                   color="green"
+                  error={fieldState.error?.message}
                   required
                 />
               )}
-            </form.Field>
+            />
           </div>
 
           {error && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
           )}
 
-          <form.Subscribe selector={(s) => s.isSubmitting}>
-            {(isSubmitting) => (
-              <Button type="submit" color="green" className="mt-1 w-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Signing in…' : 'Sign in'}
-              </Button>
-            )}
-          </form.Subscribe>
+          <Button type="submit" color="green" className="mt-1 w-full" disabled={isSubmitting}>
+            {isSubmitting ? 'Signing in…' : 'Sign in'}
+          </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-neutral-500">
