@@ -4,9 +4,6 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        # API_BASE_URL is baked into the JS bundle at build time.
-        # Set this in your shell before running: docker compose up --build
-        # Example: export API_BASE_URL=https://api.yourdomain.com
         API_BASE_URL: ${API_BASE_URL:-}
     ports:
       - "3001:3001"
