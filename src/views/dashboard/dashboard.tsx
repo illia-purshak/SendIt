@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   PackagePlus,
@@ -247,6 +248,7 @@ function OnboardingChecklist() {
 
 function SubscriptionBalance() {
   const { data: balances } = useMySubscriptionQuery();
+  const [now] = useState(() => Date.now());
   if (!balances) return null;
 
   const paid = balances.filter(
@@ -276,7 +278,7 @@ function SubscriptionBalance() {
         ? Math.max(
             0,
             Math.ceil(
-              (new Date(b.periodEnd).getTime() - Date.now()) / 86400000,
+              (new Date(b.periodEnd).getTime() - now) / 86400000,
             ),
           )
         : b.daysTotal,

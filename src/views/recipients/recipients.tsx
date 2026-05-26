@@ -160,22 +160,22 @@ export default function RecipientsPage() {
   const recipients = data?.items ?? []
   const meta = data?.meta
 
-  async function handleDelete(id: number) {
-    try {
-      await deleteRecipientMutation.mutateAsync(id)
-      toast({ title: 'Recipient deleted', color: 'success' })
-    } catch (err) {
-      toast({
-        title: 'Failed to delete recipient',
-        description: err instanceof Error ? err.message : 'Please try again.',
-        color: 'error',
-      })
-    }
-  }
-
   const columns = useMemo<ColumnDef<Recipient>[]>(
-    () =>
-      COLUMNS.map((column) =>
+    () => {
+      async function handleDelete(id: number) {
+        try {
+          await deleteRecipientMutation.mutateAsync(id)
+          toast({ title: 'Recipient deleted', color: 'success' })
+        } catch (err) {
+          toast({
+            title: 'Failed to delete recipient',
+            description: err instanceof Error ? err.message : 'Please try again.',
+            color: 'error',
+          })
+        }
+      }
+
+      return COLUMNS.map((column) =>
         column.id === 'actions'
           ? {
               ...column,
@@ -230,8 +230,9 @@ export default function RecipientsPage() {
               },
             }
           : column,
-      ),
-    [deleteRecipientMutation.isPending, deleteRecipientMutation.variables],
+      )
+    },
+    [deleteRecipientMutation, setEditingRecipientId, toast],
   )
 
   return (

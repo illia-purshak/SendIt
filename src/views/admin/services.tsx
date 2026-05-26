@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Package, Pencil, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/Button";
 import { IconButton } from "@/components/IconButton";
@@ -41,12 +41,6 @@ function ServiceEditorDialog({
   const [name, setName] = useState(service?.name ?? "");
   const [slug, setSlug] = useState(service?.slug ?? "");
   const [logoUrl, setLogoUrl] = useState(service?.logoUrl ?? "");
-
-  useEffect(() => {
-    setName(service?.name ?? "");
-    setSlug(service?.slug ?? "");
-    setLogoUrl(service?.logoUrl ?? "");
-  }, [service, open]);
 
   async function handleSubmit() {
     if (!name.trim()) {
@@ -226,6 +220,7 @@ export default function AdminServicesPage() {
 
       {(editorMode === "create" || editorMode === "edit") && (
         <ServiceEditorDialog
+          key={`${editorMode}-${selectedService?.id ?? "new"}`}
           mode={editorMode}
           service={selectedService}
           open
