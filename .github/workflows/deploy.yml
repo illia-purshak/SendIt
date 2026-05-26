@@ -45,4 +45,5 @@ jobs:
             cd ${{ secrets.EC2_DEPLOY_PATH }}
             git pull origin main
             export API_BASE_URL="${{ secrets.API_BASE_URL }}"
+            docker compose down
             docker compose up -d --build
