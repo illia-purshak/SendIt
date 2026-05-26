@@ -19,6 +19,7 @@ export default {
         neutral: {
           900: "#262626", // Carbon Black  — primary text
           600: "#5A5A5A", // Muted Grey    — secondary text
+          400: "#919191", // Mid Grey      — gray/destructive helper
           300: "#D6D6D6", // Dust Grey     — border / divider
           100: "#F5F5F5", // Off White     — card / surface
           50: "#FFFFFF", // White         — page bg
@@ -55,6 +56,17 @@ export default {
           600: "#C0392B", // Crimson ★
           300: "#E8837A", // Soft Red
           100: "#FDECEA", // Blush
+        },
+
+        // ─── Helper — Brown & Pink ─────────────────────────────────────
+        brown: {
+          300: "#e99f5e", // Caramel — main helper shade
+          100: "#fdf0e3", // Peach tint — hover bg
+        },
+
+        pink: {
+          300: "#f090dd", // Orchid — main helper shade
+          100: "#fde8f9", // Blush tint — hover bg
         },
 
         // ─── Semantic — Success (aliases primary green) ────────────────

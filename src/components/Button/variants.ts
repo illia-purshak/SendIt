@@ -1,5 +1,6 @@
 import type { UiColor } from '../ui.config'
 
+export type ButtonColor = UiColor | 'brown' | 'pink' | 'gray'
 export type ButtonVariant = 'default' | 'outline' | 'ghost'
 export type ButtonSize = 'sm' | 'md' | 'lg'
 
@@ -9,18 +10,21 @@ export const buttonSizes: Record<ButtonSize, string> = {
   lg: 'h-12 px-6 text-base',
 }
 
-export const buttonFocusRing: Record<UiColor, string> = {
+export const buttonFocusRing: Record<ButtonColor, string> = {
   green:   'focus-visible:ring-green-700',
   neutral: 'focus-visible:ring-neutral-600',
   info:    'focus-visible:ring-info-600',
   warning: 'focus-visible:ring-warning-500',
   error:   'focus-visible:ring-error-600',
   success: 'focus-visible:ring-success-600',
+  brown:   'focus-visible:ring-brown-300',
+  pink:    'focus-visible:ring-pink-300',
+  gray:    'focus-visible:ring-neutral-400',
 }
 
 type ColorDef = Record<ButtonVariant, string>
 
-const colorDefs: Record<UiColor, ColorDef> = {
+const colorDefs: Record<ButtonColor, ColorDef> = {
   green: {
     default: 'bg-green-700 text-white hover:bg-green-500 active:bg-green-950',
     outline: 'border border-green-700 text-green-700 hover:bg-green-100 active:bg-green-200',
@@ -51,8 +55,23 @@ const colorDefs: Record<UiColor, ColorDef> = {
     outline: 'border border-success-600 text-success-600 hover:bg-success-100 active:bg-success-100',
     ghost:   'text-success-600 hover:bg-success-100 active:bg-success-100',
   },
+  brown: {
+    default: 'bg-brown-300 text-white hover:bg-brown-100 active:bg-brown-300',
+    outline: 'border border-brown-300 text-brown-300 hover:bg-brown-100 active:bg-brown-100',
+    ghost:   'text-brown-300 hover:bg-brown-100 active:bg-brown-100',
+  },
+  pink: {
+    default: 'bg-pink-300 text-white hover:bg-pink-100 active:bg-pink-300',
+    outline: 'border border-pink-300 text-pink-300 hover:bg-pink-100 active:bg-pink-100',
+    ghost:   'text-pink-300 hover:bg-pink-100 active:bg-pink-100',
+  },
+  gray: {
+    default: 'bg-neutral-400 text-white hover:bg-neutral-100 active:bg-neutral-400',
+    outline: 'border border-neutral-400 text-neutral-400 hover:bg-neutral-100 active:bg-neutral-100',
+    ghost:   'text-neutral-400 hover:bg-neutral-100 active:bg-neutral-100',
+  },
 }
 
-export function getButtonClasses(variant: ButtonVariant, color: UiColor): string {
+export function getButtonClasses(variant: ButtonVariant, color: ButtonColor): string {
   return colorDefs[color][variant]
 }

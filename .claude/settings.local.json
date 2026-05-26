@@ -3,7 +3,15 @@
     "allow": [
       "Bash(pnpm build *)",
       "Bash(pnpm add *)",
-      "Bash(timeout 15 pnpm dev)"
+      "Bash(timeout 15 pnpm dev)",
+      "Bash(pnpm lint *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\GitMain\\\\SendIt\" -Recurse -Directory -Name)",
+      "Bash(pnpm exec *)",
+      "Bash(find C:\\\\GitMain\\\\SendIt\\\\src\\\\components *)",
+      "Bash(npx eslint *)",
+      "Skill(frontend-design)",
+      "Bash(pnpm dev *)",
+      "Bash(pnpm tsc *)"
     ]
   }
 }
