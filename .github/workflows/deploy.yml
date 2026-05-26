@@ -1,8 +1,6 @@
 name: CI / Deploy
 
 on:
-  pull_request:
-    branches: [main]
   push:
     branches: [main]
 
@@ -41,7 +39,9 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 10m
           script: |
+            set -e
             cd ${{ secrets.EC2_DEPLOY_PATH }}
             git pull origin main
             export API_BASE_URL="${{ secrets.API_BASE_URL }}"
