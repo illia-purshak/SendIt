@@ -1,0 +1,10 @@
+services:
+  sendit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        API_BASE_URL: ${API_BASE_URL:-}
+    ports:
+      - "3001:3001"
+    restart: unless-stopped

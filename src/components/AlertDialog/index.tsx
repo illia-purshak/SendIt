@@ -21,7 +21,11 @@ export function AlertDialog({ color = defaultUiColor, ...props }: AlertDialogPro
 
 // ─── Trigger ──────────────────────────────────────────────────────────────────
 
-export const AlertDialogTrigger = AlertDialogPrimitive.Trigger
+export function AlertDialogTrigger(
+  props: ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Trigger>,
+) {
+  return <AlertDialogPrimitive.Trigger {...props} />
+}
 
 // ─── Content (includes portal + overlay) ─────────────────────────────────────
 
