@@ -1,53 +1,66 @@
-export type UserType = 'INDIVIDUAL' | 'ORGANIZATION'
-export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'OPERATOR' | 'COURIER' | 'CLIENT'
-
-export interface User {
-  id: number
-  email?: string
-  phone?: string | null
-  phoneNumber?: string | null
-  type: UserType
-  role: UserRole
-  profileCompleted: boolean
-  status?: string
-  createdAt?: string
-  updatedAt?: string
-}
-
-export interface IndividualProfile {
-  userId: number
-  firstName: string
-  middleName?: string | null
-  lastName: string
-  firstNameLat?: string | null
-  lastNameLat?: string | null
-  birthDate?: string | null
-}
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'CLIENT'
 
 export interface OrganizationProfile {
   userId: number
   companyName: string
   edrpou: string
   legalAddress: string
-  companyNameLat?: string | null
-  taxNumber?: string | null
-  contactPersonName?: string | null
+  companyNameLat: string | null
+  ownershipForm: string | null
+  taxNumber: string | null
+  contactPersonName: string | null
 }
 
-export interface RegisterBody {
-  email: string
+export interface ProfileSettings {
+  language: string
+  timezone: string
+  dateFormat: string
+}
+
+export interface ProfileNotifications {
+  subscription: boolean
+  postalConnection: boolean
+  account: boolean
+  system: boolean
+  email: boolean
+}
+
+export interface UpdateProfileBody {
+  companyName?: string
   phone?: string
-  type: UserType
-  password: string
+  contactPersonName?: string
+  companyNameLat?: string
+  ownershipForm?: string
+  legalAddress?: string
+  taxNumber?: string
 }
 
-export interface CompleteIndividualProfileBody {
-  firstName: string
-  lastName: string
-  middleName?: string | null
-  firstNameLat?: string | null
-  lastNameLat?: string | null
-  birthDate?: string
+export interface UpdateSettingsBody {
+  language?: string
+  timezone?: string
+  dateFormat?: string
+  notifications?: {
+    subscription?: boolean
+    postalConnection?: boolean
+    system?: boolean
+    email?: boolean
+  }
+}
+
+export interface User {
+  id: number
+  email: string | null
+  phone: string | null
+  avatarUrl: string | null
+  role: UserRole
+  profileCompleted: boolean
+  status: 'ACTIVE' | 'INACTIVE' | 'BANNED' | 'DELETED'
+  createdAt: string
+  updatedAt: string
+  profile: OrganizationProfile | null
+  settings?: ProfileSettings
+  notifications?: ProfileNotifications
+  twoFactorEnabled?: boolean
 }
 
 export interface CompleteOrganizationProfileBody {
@@ -57,4 +70,13 @@ export interface CompleteOrganizationProfileBody {
   companyNameLat?: string | null
   taxNumber?: string | null
   contactPersonName?: string | null
+}
+
+export interface Admin {
+  id: number
+  email: string
+  firstName: string
+  lastName: string
+  role: 'ADMIN' | 'SUPER_ADMIN'
+  status: string
 }

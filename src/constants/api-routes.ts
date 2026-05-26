@@ -7,14 +7,134 @@ export const API_ROUTES = {
     refresh: '/auth/refresh',
     forgotPassword: '/auth/forgot-password',
     resetPassword: '/auth/reset-password',
-    completeProfile: {
-      individual: '/auth/complete-profile/individual',
-      organization: '/auth/complete-profile/organization',
+    completeProfile: '/auth/complete-profile',
+    password: '/auth/password',
+    twoFactor: {
+      verify: '/auth/2fa/verify',
+      setup: '/auth/2fa/setup',
+      enable: '/auth/2fa/enable',
+      disable: '/auth/2fa/disable',
     },
   },
-  parcelTemplates: {
-    list: '/parcel-templates',
-    detail: (id: number) => `/parcel-templates/${id}`,
-    setDefault: (id: number) => `/parcel-templates/${id}/set-default`,
+  profile: {
+    me: '/profile',
+    settings: '/profile/settings',
+  },
+  users: {
+    me: '/users/me',
+    restore: '/users/me/restore',
+  },
+  adminAuth: {
+    login: '/admin/auth/login',
+    logout: '/admin/auth/logout',
+    refresh: '/admin/auth/refresh',
+    acceptInvite: '/admin/auth/accept-invite',
+    validateInvite: (token: string) => `/admin/auth/invite/${token}`,
+    setPassword: '/admin/auth/set-password',
+    verify2fa: '/admin/auth/verify-2fa',
+    twoFactor: {
+      setup: '/admin/auth/2fa/setup',
+      enable: '/admin/auth/2fa/enable',
+      disable: '/admin/auth/2fa/disable',
+      verifySetup: '/admin/auth/2fa/verify-setup',
+    },
+  },
+  novaPost: {
+    requestKey: '/postal-connections/nova-post/request-key',
+    connect: '/postal-connections/nova-post/connect',
+  },
+  postalConnections: {
+    list: '/postal-connections',
+    novaPoshta: '/postal-connections/nova-poshta',
+    novaPoshtataDivisions: '/postal-connections/nova-poshta/divisions',
+    ukrposhta: '/postal-connections/ukrposhta',
+    meest: '/postal-connections/meest',
+  },
+  subscriptions: {
+    plans: '/subscriptions/plans',
+    me: '/subscriptions/me',
+    buy: '/subscriptions',
+    detail: (id: number) => `/subscriptions/${id}`,
+  },
+  billing: {
+    list: '/billing',
+    card: '/billing/card',
+  },
+  onboarding: {
+    checklist: '/onboarding/checklist',
+  },
+  analytics: {
+    summary: '/analytics',
+  },
+  notifications: {
+    list: '/notifications',
+    unreadCount: '/notifications/unread-count',
+    single: (id: number) => `/notifications/${id}`,
+  },
+  support: {
+    tickets: '/support/tickets',
+    ticket: (id: number) => `/support/tickets/${id}`,
+    ticketRead: (id: number) => `/support/tickets/${id}/read`,
+    ticketMessage: (id: number) => `/support/tickets/${id}/message`,
+  },
+  shipments: {
+    list: '/shipments',
+    detailByTtn: (ttn: string) => `/shipments/${ttn}`,
+    detail: (operator: string, ref: string) => `/shipments/${operator}/${ref}`,
+    novaPoshtaCreate: '/shipments/nova-poshta',
+    novaPoshtaUpdate: (ttn: string) => `/shipments/nova-poshta/${ttn}`,
+    novaPoshtaDelete: (ttn: string) => `/shipments/nova-poshta/${ttn}`,
+    ukrposhtaCreate: '/shipments/ukrposhta',
+    ukrposhtaUpdate: (ttn: string) => `/shipments/ukrposhta/${ttn}`,
+    ukrposhtaDelete: (ttn: string) => `/shipments/ukrposhta/${ttn}`,
+    meestCreate: '/shipments/meest',
+    meestUpdate: (ttn: string) => `/shipments/meest/${ttn}`,
+    meestDelete: (ttn: string) => `/shipments/meest/${ttn}`,
+  },
+  drafts: {
+    list: '/drafts',
+    detail: (id: number) => `/drafts/${id}`,
+  },
+  templates: {
+    list: '/templates',
+    detail: (id: number) => `/templates/${id}`,
+    incrementUsage: (id: number) => `/templates/${id}/increment-usage`,
+  },
+  recipients: {
+    list: '/recipients',
+    detail: (id: number) => `/recipients/${id}`,
+  },
+  adminSubscriptions: {
+    list: '/admin/subscriptions',
+    detail: (id: number) => `/admin/subscriptions/${id}`,
+    update: (id: number) => `/admin/subscriptions/${id}`,
+  },
+  adminPlans: {
+    list: '/admin/plans',
+    detail: (id: number) => `/admin/plans/${id}`,
+  },
+  adminUsers: {
+    list: '/admin/users',
+    detail: (id: number) => `/admin/users/${id}`,
+  },
+  adminServices: {
+    list: '/admin/services',
+    detail: (id: number) => `/admin/services/${id}`,
+  },
+  adminAdmins: {
+    list: '/admin/admins',
+    detail: (id: number) => `/admin/admins/${id}`,
+    invite: '/admin/admins/invite',
+    resendInvite: (id: number) => `/admin/admins/${id}/resend-invite`,
+  },
+  adminSupport: {
+    tickets: '/admin/support/tickets',
+    myTickets: '/admin/support/tickets/my',
+    ticket: (id: number) => `/admin/support/tickets/${id}`,
+    ticketRead: (id: number) => `/admin/support/tickets/${id}/read`,
+    ticketMessage: (id: number) => `/admin/support/tickets/${id}/message`,
+  },
+  adminStatistics: {
+    summary: '/admin/statistics',
   },
 } as const

@@ -1,104 +1,140 @@
-import { createContext, useContext, type ReactNode } from 'react'
-import type {
-  User,
-  RegisterBody,
-  CompleteIndividualProfileBody,
-  CompleteOrganizationProfileBody,
-} from '@/types/auth'
+import type { ReactNode } from "react";
 import {
   useSessionQuery,
   useLoginMutation,
+  useVerify2faMutation,
   useRegisterMutation,
   useLogout,
-  useCompleteIndividualProfileMutation,
   useCompleteOrganizationProfileMutation,
   useForgotPasswordMutation,
   useResetPasswordMutation,
-} from '@/api/auth'
-
-interface AuthContextValue {
-  user: User | null
-  loading: boolean
-  login(email: string, password: string): Promise<string | null>
-  register(body: RegisterBody): Promise<string | null>
-  logout(): void
-  completeIndividualProfile(body: CompleteIndividualProfileBody): Promise<string | null>
-  completeOrganizationProfile(body: CompleteOrganizationProfileBody): Promise<string | null>
-  forgotPassword(email: string): Promise<string | null>
-  resetPassword(token: string, password: string): Promise<string | null>
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null)
+  useSetup2faMutation,
+  useEnable2faMutation,
+  useDisable2faMutation,
+} from "@/api/auth";
+import { AuthContext, type AuthContextValue } from "./auth-context";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const sessionQuery = useSessionQuery()
-  const loginMutation = useLoginMutation()
-  const registerMutation = useRegisterMutation()
-  const logout = useLogout()
-  const completeIndividualProfileMutation = useCompleteIndividualProfileMutation()
-  const completeOrganizationProfileMutation = useCompleteOrganizationProfileMutation()
-  const forgotPasswordMutation = useForgotPasswordMutation()
-  const resetPasswordMutation = useResetPasswordMutation()
+  const sessionQuery = useSessionQuery();
+  const loginMutation = useLoginMutation();
+  const verify2faMutation = useVerify2faMutation();
+  const registerMutation = useRegisterMutation();
+  const logout = useLogout();
+  const completeOrganizationProfileMutation =
+    useCompleteOrganizationProfileMutation();
+  const forgotPasswordMutation = useForgotPasswordMutation();
+  const resetPasswordMutation = useResetPasswordMutation();
+  const setup2faMutation = useSetup2faMutation();
+  const enable2faMutation = useEnable2faMutation();
+  const disable2faMutation = useDisable2faMutation();
 
   const value: AuthContextValue = {
     user: sessionQuery.data ?? null,
     loading: sessionQuery.isPending,
+
     async login(email, password) {
       try {
-        await loginMutation.mutateAsync({ email, password })
-        return null
+        const result = await loginMutation.mutateAsync({ email, password });
+        if ("requires2FA" in result) return { requires2FA: true };
+        if ("requiresProfileCompletion" in result)
+          return { requiresProfileCompletion: true };
+        return null;
       } catch (error) {
-        return error instanceof Error ? error.message : 'An unexpected error occurred'
+        return error instanceof Error
+          ? error.message
+          : "An unexpected error occurred";
       }
     },
-    async register(body) {
+
+    async verify2fa(pendingToken, totpCode) {
       try {
-        await registerMutation.mutateAsync(body)
-        return null
+        await verify2faMutation.mutateAsync({ pendingToken, totpCode });
+        return null;
       } catch (error) {
-        return error instanceof Error ? error.message : 'An unexpected error occurred'
+        return error instanceof Error
+          ? error.message
+          : "An unexpected error occurred";
       }
     },
+
+    async register(email, password) {
+      try {
+        await registerMutation.mutateAsync({ email, password });
+        return null;
+      } catch (error) {
+        return error instanceof Error
+          ? error.message
+          : "An unexpected error occurred";
+      }
+    },
+
     logout,
-    async completeIndividualProfile(body) {
-      try {
-        await completeIndividualProfileMutation.mutateAsync(body)
-        return null
-      } catch (error) {
-        return error instanceof Error ? error.message : 'An unexpected error occurred'
-      }
-    },
+
     async completeOrganizationProfile(body) {
       try {
-        await completeOrganizationProfileMutation.mutateAsync(body)
-        return null
+        await completeOrganizationProfileMutation.mutateAsync(body);
+        return null;
       } catch (error) {
-        return error instanceof Error ? error.message : 'An unexpected error occurred'
+        return error instanceof Error
+          ? error.message
+          : "An unexpected error occurred";
       }
     },
+
     async forgotPassword(email) {
       try {
-        await forgotPasswordMutation.mutateAsync(email)
-        return null
+        await forgotPasswordMutation.mutateAsync(email);
+        return null;
       } catch (error) {
-        return error instanceof Error ? error.message : 'An unexpected error occurred'
+        return error instanceof Error
+          ? error.message
+          : "An unexpected error occurred";
       }
     },
+
     async resetPassword(token, password) {
       try {
-        await resetPasswordMutation.mutateAsync({ token, password })
-        return null
+        await resetPasswordMutation.mutateAsync({ token, password });
+        return null;
       } catch (error) {
-        return error instanceof Error ? error.message : 'An unexpected error occurred'
+        return error instanceof Error
+          ? error.message
+          : "An unexpected error occurred";
       }
     },
-  }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
+    async setup2fa() {
+      try {
+        return await setup2faMutation.mutateAsync();
+      } catch (error) {
+        return error instanceof Error
+          ? error.message
+          : "An unexpected error occurred";
+      }
+    },
 
-export function useAuthContext(): AuthContextValue {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuthContext must be inside AuthProvider')
-  return ctx
+    async enable2fa(totpCode) {
+      try {
+        await enable2faMutation.mutateAsync(totpCode);
+        return null;
+      } catch (error) {
+        return error instanceof Error
+          ? error.message
+          : "An unexpected error occurred";
+      }
+    },
+
+    async disable2fa(totpCode) {
+      try {
+        await disable2faMutation.mutateAsync(totpCode);
+        return null;
+      } catch (error) {
+        return error instanceof Error
+          ? error.message
+          : "An unexpected error occurred";
+      }
+    },
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

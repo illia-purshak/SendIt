@@ -8,11 +8,9 @@ const API_BASE_URL = (import.meta.env.API_BASE_URL ?? '').replace(/\/+$/, '')
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,
   validateStatus: () => true,
 })
 
-// Inject Bearer token on every outgoing request
 apiClient.interceptors.request.use(config => {
   const token = authStore.getToken()
   if (token) {
@@ -23,36 +21,61 @@ apiClient.interceptors.request.use(config => {
   return config
 })
 
-// Single in-flight promise so parallel 401s wait for one refresh attempt.
 let refreshing: Promise<string | null> | null = null
 
 export async function silentRefresh(): Promise<string | null> {
   if (refreshing) return refreshing
 
-  refreshing = apiClient
-    .post<{ data?: { accessToken?: string } }>(API_ROUTES.auth.refresh)
+  const refreshToken = authStore.getRefreshToken()
+  if (!refreshToken) return null
+
+  refreshing = axios
+    .post<{ accessToken: string; refreshToken: string; currentPlan?: import('@/types/subscription').CurrentPlan; scheduledPlan?: import('@/types/subscription').ScheduledPlan | null }>(
+      `${API_BASE_URL}${API_ROUTES.auth.refresh}`,
+      { refreshToken },
+    )
     .then(response => {
       if (response.status < 200 || response.status >= 300) return null
-      const token = response.data?.data?.accessToken
-      if (!token) return null
-      authStore.setToken(token)
-      return token
+      const { accessToken, refreshToken: newRefresh } = response.data
+      if (!accessToken || !newRefresh) return null
+      authStore.setTokens(accessToken, newRefresh)
+      if (response.data.currentPlan) {
+        authStore.setCurrentPlan(response.data.currentPlan, response.data.scheduledPlan ?? null)
+      }
+      return accessToken
     })
     .catch(() => null)
-    .finally(() => { refreshing = null })
+    .finally(() => {
+      refreshing = null
+    })
 
   return refreshing
 }
 
-// 401 handling: refresh once, then retry; redirect to login if refresh fails.
-// Skipped for the refresh endpoint itself to prevent infinite loops.
+const AUTH_NO_REFRESH_URLS = new Set<string>([
+  API_ROUTES.auth.refresh,
+  API_ROUTES.auth.login,
+  API_ROUTES.auth.register,
+  API_ROUTES.auth.twoFactor.verify,
+  API_ROUTES.auth.completeProfile,
+])
+
 apiClient.interceptors.response.use(async response => {
   const config = response.config as AxiosRequestConfig & { _retry?: boolean }
+
+  const responseCode = (response.data as { code?: string } | null)?.code
+  if (responseCode === 'CONNECTION_INVALID') {
+    toastStore.toast({
+      title: 'Postal connection invalid',
+      description: 'One of your operator connections is no longer valid. Update your API key in Profile.',
+      color: 'warning',
+    })
+  }
 
   if (
     response.status !== 401 ||
     config._retry ||
-    config.url === API_ROUTES.auth.refresh
+    AUTH_NO_REFRESH_URLS.has(config.url as string)
   ) {
     return response
   }
@@ -69,8 +92,6 @@ apiClient.interceptors.response.use(async response => {
   return apiClient.request(config)
 })
 
-// Normalize network-level failures into user-friendly errors and surface them via toast.
-// HTTP error statuses never reach this path because validateStatus always returns true.
 apiClient.interceptors.response.use(null, (error: AxiosError) => {
   if (axios.isCancel(error)) return Promise.reject(error)
 
@@ -79,7 +100,6 @@ apiClient.interceptors.response.use(null, (error: AxiosError) => {
   if (error.code === 'ECONNABORTED' || error.code === 'ERR_CANCELED') {
     message = 'Request timed out — please try again'
   } else if (!error.response) {
-    // Server unreachable: network down, DNS failure, CORS preflight blocked, etc.
     message = 'Network error — please check your connection'
   }
 
@@ -95,16 +115,19 @@ export function parseError(data: unknown): string {
   try {
     const body = data as {
       statusCode?: number
-      message?: string[]
-      success?: boolean
-      error?: { message?: string }
+      message?: string | string[]
+      error?: string | { message?: string }
     }
 
     if (body.statusCode === 400 && Array.isArray(body.message)) {
       return body.message[0] ?? 'Validation error'
     }
 
-    if (body.success === false && body.error?.message) {
+    if (typeof body.message === 'string' && body.message) {
+      return body.message
+    }
+
+    if (typeof body.error === 'object' && body.error?.message) {
       return body.error.message
     }
   } catch {

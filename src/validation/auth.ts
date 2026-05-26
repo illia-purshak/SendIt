@@ -18,11 +18,7 @@ export const loginSchema = z.object({
 })
 
 export const registerSchema = z.object({
-  type: z.enum(['INDIVIDUAL', 'ORGANIZATION']),
   email: emailSchema,
-  phone: z
-    .string()
-    .refine((v) => !v || /^\+[1-9]\d{1,14}$/.test(v), 'Use E.164 format, e.g. +380501234567'),
   password: passwordSchema,
 })
 
@@ -34,13 +30,11 @@ export const resetPasswordSchema = z.object({
   password: passwordSchema,
 })
 
-export const individualProfileSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  middleName: z.string(),
-  firstNameLat: z.string(),
-  lastNameLat: z.string(),
-  birthDate: z.date().optional(),
+export const verify2faSchema = z.object({
+  totpCode: z
+    .string()
+    .length(6, 'Code must be 6 digits')
+    .regex(/^\d{6}$/, 'Code must be 6 digits'),
 })
 
 export const organizationProfileSchema = z.object({
@@ -51,6 +45,27 @@ export const organizationProfileSchema = z.object({
   taxNumber: z.string(),
   contactPersonName: z.string(),
 })
+
+export const acceptInviteSchema = z.object({
+  firstName: z.string().min(1, 'First name is required'),
+  lastName: z.string().min(1, 'Last name is required'),
+  password: passwordSchema,
+})
+
+export const setPasswordSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+  })
+  .superRefine(({ password, confirmPassword }, ctx) => {
+    if (confirmPassword !== password) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Passwords do not match',
+        path: ['confirmPassword'],
+      })
+    }
+  })
 
 export const passwordRules = [
   { test: (p: string) => p.length >= 6, label: '6+ characters' },

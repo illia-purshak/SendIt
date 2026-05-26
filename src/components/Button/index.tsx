@@ -1,12 +1,12 @@
 import { Slot } from '@radix-ui/react-slot'
 import { type ButtonHTMLAttributes } from 'react'
-import { getButtonClasses, buttonSizes, buttonFocusRing, type ButtonVariant, type ButtonSize } from './variants'
-import { defaultUiColor, type UiColor } from '../ui.config'
+import { getButtonClasses, buttonSizes, buttonFocusRing, type ButtonVariant, type ButtonSize, type ButtonColor } from './variants'
+import { defaultUiColor } from '../ui.config'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant
   size?: ButtonSize
-  color?: UiColor
+  color?: ButtonColor
   asChild?: boolean
 }
 
