@@ -64,7 +64,6 @@ export default function SupportPage() {
     page: 1,
     limit: 100,
   });
-  const { data: ticketDetail, isLoading: detailLoading } = useSupportTicketQuery(selectedId ?? 0);
   const createTicket = useCreateSupportTicketMutation();
   const postMessage = usePostSupportMessageMutation();
   const markRead = useMarkSupportTicketReadMutation();
@@ -83,29 +82,27 @@ export default function SupportPage() {
     [data?.items, data?.openCount],
   );
 
-  useEffect(() => {
-    if (tickets.length === 0) {
-      if (selectedId !== null) setSelectedId(null);
-      return;
-    }
-
-    if (selectedId && tickets.some((ticket) => ticket.id === selectedId)) return;
-    setSelectedId(tickets[0]?.id ?? null);
+  const activeId = useMemo(() => {
+    if (tickets.length === 0) return null;
+    if (selectedId !== null && tickets.some((t) => t.id === selectedId)) return selectedId;
+    return tickets[0]?.id ?? null;
   }, [selectedId, tickets]);
 
+  const { data: ticketDetail, isLoading: detailLoading } = useSupportTicketQuery(activeId ?? 0);
+
   useEffect(() => {
-    if (!ticketDetail || !selectedId) return;
-    const unreadKey = `${selectedId}:${ticketDetail.unreadCount ?? 0}`;
+    if (!ticketDetail || !activeId) return;
+    const unreadKey = `${activeId}:${ticketDetail.unreadCount ?? 0}`;
     if ((ticketDetail.unreadCount ?? 0) <= 0) return;
     if (lastMarkedRead.current === unreadKey) return;
     lastMarkedRead.current = unreadKey;
-    markRead.mutate(selectedId);
-  }, [markRead, selectedId, ticketDetail]);
+    markRead.mutate(activeId);
+  }, [activeId, markRead, ticketDetail]);
 
   async function handleSend() {
-    if (!selectedId || !newMessage.trim()) return;
+    if (!activeId || !newMessage.trim()) return;
     try {
-      await postMessage.mutateAsync({ ticketId: selectedId, body: newMessage.trim() });
+      await postMessage.mutateAsync({ ticketId: activeId, body: newMessage.trim() });
       setNewMessage("");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to send message";
@@ -266,7 +263,7 @@ export default function SupportPage() {
                       onClick={() => setSelectedId(ticket.id)}
                       className={[
                         "w-full border-b border-neutral-100 px-4 py-3 text-left transition-colors hover:bg-neutral-50",
-                        selectedId === ticket.id ? "bg-green-50" : "",
+                        activeId === ticket.id ? "bg-green-50" : "",
                       ].join(" ")}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -310,7 +307,7 @@ export default function SupportPage() {
           </aside>
 
           <section className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-            {selectedId === null ? (
+            {activeId === null ? (
               <div className="flex flex-1 items-center justify-center text-sm text-neutral-400">
                 Select a ticket
               </div>

@@ -4,7 +4,7 @@ import { API_ROUTES } from '@/constants/api-routes'
 import { adminTokenStore } from '@/store/adminTokenStore'
 import { toastStore } from '@/store/toastStore'
 
-const API_BASE_URL = (import.meta.env.API_BASE_URL ?? '').replace(/\/+$/, '')
+const API_BASE_URL = `${(import.meta.env.API_BASE_URL ?? '').replace(/\/+$/, '')}/api/v1`
 
 export const adminApiClient = axios.create({
   baseURL: API_BASE_URL,

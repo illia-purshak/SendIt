@@ -235,63 +235,71 @@ function toPositiveNumber(value: unknown, fallback = 0): number {
 }
 
 function mapShipmentSourceToFormValues(
-  data: Record<string, any>,
+  data: Record<string, unknown>,
   fallbackMode?: string | null,
 ): FormValues {
-  const parcel = data.parcel ?? data.parcels?.[0] ?? {};
-  const dimensions = parcel.dimensions ?? {};
+  type R = Record<string, unknown>;
+  const parcel = (data.parcel as R | undefined) ?? ((data.parcels as R[] | undefined)?.[0]) ?? {} as R;
+  const dimensions = (parcel.dimensions as R | undefined) ?? {} as R;
+  const operator = data.operator;
   const mode = normalizePostalServiceMode(
-    data.postalServiceMode ??
-      (typeof data.operator === "string" ? data.operator : data.operator?.slug) ??
-      fallbackMode,
+    (data.postalServiceMode as string | undefined)
+      ?? (typeof operator === "string" ? operator : (operator as R | undefined)?.slug as string | undefined)
+      ?? fallbackMode,
   );
 
+  const dataParcel = data.parcel as R | undefined;
+  const dataParcelDims = dataParcel?.dimensions as R | undefined;
   const actualWeight =
-    data.parcel?.actualWeight != null
-      ? toPositiveNumber(data.parcel.actualWeight)
+    dataParcel?.actualWeight != null
+      ? toPositiveNumber(dataParcel.actualWeight)
       : toPositiveNumber(parcel.actualWeight) / 1000;
   const length =
-    data.parcel?.dimensions?.length != null
-      ? toPositiveNumber(data.parcel.dimensions.length)
+    dataParcelDims?.length != null
+      ? toPositiveNumber(dataParcelDims.length)
       : toPositiveNumber(parcel.length ?? dimensions.length) / 10;
   const width =
-    data.parcel?.dimensions?.width != null
-      ? toPositiveNumber(data.parcel.dimensions.width)
+    dataParcelDims?.width != null
+      ? toPositiveNumber(dataParcelDims.width)
       : toPositiveNumber(parcel.width ?? dimensions.width) / 10;
   const height =
-    data.parcel?.dimensions?.height != null
-      ? toPositiveNumber(data.parcel.dimensions.height)
+    dataParcelDims?.height != null
+      ? toPositiveNumber(dataParcelDims.height)
       : toPositiveNumber(parcel.height ?? dimensions.height) / 10;
+
+  const sender = data.sender as R | undefined;
+  const recipient = data.recipient as R | undefined;
+  const invoice = data.invoice as R | undefined;
 
   return {
     postalServiceMode: mode,
-    payerType: data.payerType ?? "Sender",
-    payerContractNumber: data.payerContractNumber ?? "",
-    clientOrder: data.clientOrder ?? "",
-    note: data.note ?? "",
-    deliveryType: data.deliveryType,
-    readyToShip: data.readyToShip ?? data.status === "ReadyToShip",
+    payerType: (data.payerType as "Sender" | "Recipient" | "ThirdPerson" | undefined) ?? "Sender",
+    payerContractNumber: (data.payerContractNumber as string | undefined) ?? "",
+    clientOrder: (data.clientOrder as string | undefined) ?? "",
+    note: (data.note as string | undefined) ?? "",
+    deliveryType: data.deliveryType as "standard" | "economy" | "express" | undefined,
+    readyToShip: (data.readyToShip as boolean | undefined) ?? data.status === "ReadyToShip",
     sender: {
-      name: data.sender?.name ?? "",
-      phone: data.sender?.phone ?? "",
-      countryCode: data.sender?.countryCode ?? "UA",
-      divisionNumber: data.sender?.divisionNumber ?? "",
-      city: data.sender?.city ?? "",
-      address: data.sender?.address ?? "",
-      postalCode: data.sender?.postalCode ?? "",
+      name: (sender?.name as string | undefined) ?? "",
+      phone: (sender?.phone as string | undefined) ?? "",
+      countryCode: (sender?.countryCode as string | undefined) ?? "UA",
+      divisionNumber: (sender?.divisionNumber as string | undefined) ?? "",
+      city: (sender?.city as string | undefined) ?? "",
+      address: (sender?.address as string | undefined) ?? "",
+      postalCode: (sender?.postalCode as string | undefined) ?? "",
     },
     recipient: {
-      name: data.recipient?.name ?? data.recipientName ?? "",
-      phone: data.recipient?.phone ?? data.recipientPhone ?? "",
-      countryCode: data.recipient?.countryCode ?? "UA",
-      divisionNumber: data.recipient?.divisionNumber ?? "",
-      city: data.recipient?.city ?? "",
-      address: data.recipient?.address ?? data.deliveryAddress ?? "",
-      postalCode: data.recipient?.postalCode ?? "",
+      name: (recipient?.name as string | undefined) ?? (data.recipientName as string | undefined) ?? "",
+      phone: (recipient?.phone as string | undefined) ?? (data.recipientPhone as string | undefined) ?? "",
+      countryCode: (recipient?.countryCode as string | undefined) ?? "UA",
+      divisionNumber: (recipient?.divisionNumber as string | undefined) ?? "",
+      city: (recipient?.city as string | undefined) ?? "",
+      address: (recipient?.address as string | undefined) ?? (data.deliveryAddress as string | undefined) ?? "",
+      postalCode: (recipient?.postalCode as string | undefined) ?? "",
     },
     parcel: {
-      cargoCategory: parcel.cargoCategory ?? "parcel",
-      parcelDescription: parcel.parcelDescription ?? "",
+      cargoCategory: (parcel.cargoCategory as string | undefined) ?? "parcel",
+      parcelDescription: (parcel.parcelDescription as string | undefined) ?? "",
       insuranceCost: toPositiveNumber(parcel.insuranceCost),
       actualWeight,
       dimensions: {
@@ -301,8 +309,8 @@ function mapShipmentSourceToFormValues(
       },
     },
     invoice: {
-      cost: toPositiveNumber(data.invoice?.cost),
-      currency: data.invoice?.currency ?? "UAH",
+      cost: toPositiveNumber(invoice?.cost),
+      currency: (invoice?.currency as string | undefined) ?? "UAH",
     },
   };
 }
@@ -494,7 +502,7 @@ export default function ShipmentNewView() {
     if (activeDraftId && draftPrefill?.draftData) {
       form.reset(
         mapShipmentSourceToFormValues(
-          draftPrefill.draftData as Record<string, any>,
+          draftPrefill.draftData as Record<string, unknown>,
           draftPrefill.draftData?.postalServiceMode as string | undefined,
         ),
       );
@@ -504,7 +512,7 @@ export default function ShipmentNewView() {
     }
 
     if (sourceShipmentTtn && shipmentPrefill) {
-      form.reset(mapShipmentSourceToFormValues(shipmentPrefill as Record<string, any>, operatorParam));
+      form.reset(mapShipmentSourceToFormValues(shipmentPrefill as Record<string, unknown>, operatorParam));
       setSelectedRecipientId("");
       appliedPrefillKeyRef.current = activePrefillKey;
     }

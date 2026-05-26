@@ -133,11 +133,14 @@ export default function AdminSupportPage() {
 
   const statusFilter = urlState.filterState["status"];
   const categoryFilter = urlState.filterState["category"];
-  const [searchInput, setSearchInput] = useState(urlState.filterState["search"] ?? "");
+  const urlSearch = urlState.filterState["search"] ?? "";
+  const [searchInput, setSearchInput] = useState(urlSearch);
+  const [prevUrlSearch, setPrevUrlSearch] = useState(urlSearch);
 
-  useEffect(() => {
-    setSearchInput(urlState.filterState["search"] ?? "");
-  }, [urlState.filterState]);
+  if (urlSearch !== prevUrlSearch) {
+    setPrevUrlSearch(urlSearch);
+    setSearchInput(urlSearch);
+  }
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -162,23 +165,23 @@ export default function AdminSupportPage() {
     limit: PAGE_SIZE,
   });
 
-  async function handleAssign(ticketId: number) {
-    try {
-      await updateTicket.mutateAsync({ id: ticketId, action: "assign" });
-      toastStore.toast({ title: "Ticket assigned", color: "success" });
-      navigate(`${APP_ROUTES.admin.mySupport}?ticketId=${ticketId}`);
-    } catch (err) {
-      toastStore.toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to assign ticket",
-        color: "error",
-      });
-    }
-  }
-
   const columns = useMemo<ColumnDef<SupportTicketListItem>[]>(
-    () =>
-      BASE_COLUMNS.map((column) =>
+    () => {
+      async function handleAssign(ticketId: number) {
+        try {
+          await updateTicket.mutateAsync({ id: ticketId, action: "assign" });
+          toastStore.toast({ title: "Ticket assigned", color: "success" });
+          navigate(`${APP_ROUTES.admin.mySupport}?ticketId=${ticketId}`);
+        } catch (err) {
+          toastStore.toast({
+            title: "Error",
+            description: err instanceof Error ? err.message : "Failed to assign ticket",
+            color: "error",
+          });
+        }
+      }
+
+      return BASE_COLUMNS.map((column) =>
         column.id === "actions"
           ? {
               ...column,
@@ -219,8 +222,9 @@ export default function AdminSupportPage() {
               },
             }
           : column,
-      ),
-    [navigate, updateTicket.isPending, updateTicket.variables],
+      );
+    },
+    [navigate, updateTicket],
   );
 
   return (

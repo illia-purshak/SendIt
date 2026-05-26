@@ -33,7 +33,6 @@ function getTicketUserLabel(ticket: SupportTicketListItem) {
 export default function AdminMySupportPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState<SupportTicketTab>("active");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const lastMarkedRead = useRef<string | null>(null);
 
@@ -62,27 +61,18 @@ export default function AdminMySupportPage() {
   const rawTicketId = searchParams.get("ticketId");
   const requestedTicketId = rawTicketId ? Number(rawTicketId) : null;
 
+  const activeId = useMemo(() => {
+    if (tickets.length === 0) return null;
+    if (requestedTicketId && tickets.some((t) => t.id === requestedTicketId)) return requestedTicketId;
+    return tickets[0]?.id ?? null;
+  }, [requestedTicketId, tickets]);
+
   useEffect(() => {
-    if (tickets.length === 0) {
-      if (selectedId !== null) setSelectedId(null);
-      return;
-    }
-
-    if (requestedTicketId && tickets.some((ticket) => ticket.id === requestedTicketId)) {
-      if (selectedId !== requestedTicketId) setSelectedId(requestedTicketId);
-      return;
-    }
-
-    const fallbackId = tickets[0]?.id ?? null;
-    if (selectedId !== fallbackId) setSelectedId(fallbackId);
-    if (fallbackId !== null && rawTicketId !== String(fallbackId)) {
-      const nextParams = new URLSearchParams(searchParams);
-      nextParams.set("ticketId", String(fallbackId));
-      setSearchParams(nextParams, { replace: true });
-    }
-  }, [rawTicketId, requestedTicketId, searchParams, selectedId, setSearchParams, tickets]);
-
-  const activeId = selectedId ?? tickets[0]?.id ?? null;
+    if (activeId === null || rawTicketId === String(activeId)) return;
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("ticketId", String(activeId));
+    setSearchParams(nextParams, { replace: true });
+  }, [activeId, rawTicketId, searchParams, setSearchParams]);
   const { data: ticketDetail, isLoading: detailLoading } = useAdminTicketQuery(activeId ?? 0);
 
   useEffect(() => {
@@ -100,7 +90,6 @@ export default function AdminMySupportPage() {
   );
 
   function openTicket(id: number) {
-    setSelectedId(id);
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set("ticketId", String(id));
     setSearchParams(nextParams, { replace: true });
