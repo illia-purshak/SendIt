@@ -2,15 +2,13 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { APP_ROUTES } from "@/constants/app-routes";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import {
-  useCreateMeestShipmentMutation,
-  useCreateNovaPoshtaShipmentMutation,
-  useCreateUkrposhtaShipmentMutation,
-  useShipmentByTtnQuery,
+  useCreateShipmentMutation,
   useUpdateMeestShipmentMutation,
   useUpdateNovaPoshtaShipmentMutation,
   useUpdateUkrposhtaShipmentMutation,
@@ -19,300 +17,132 @@ import { useCreateDraftMutation, useDraftQuery, useUpdateDraftMutation } from "@
 import {
   ConnectionInvalidError,
   OperatorUnavailableError,
+  usePostalConnectionsQuery,
 } from "@/api/postal-connections";
+import { ApiValidationError } from "@/utils/parseApiError";
 import { useToast } from "@/components/Toast/use-toast";
 import { SaveAsTemplateModal } from "@/components/SaveAsTemplateModal";
 import { CancelGuardModal } from "@/components/CancelGuardModal";
 import { useRecipientsQuery } from "@/api/recipients";
+import { useTemplateQuery, useIncrementTemplateUsageMutation } from "@/api/templates";
 import type { Recipient } from "@/types/recipient";
+import { isValidUaPhone, normalizeUaPhone } from "@/utils/validation";
+import {
+  DEFAULT_SHIPMENT_FORM_DATA,
+  POSTAL_SERVICE_MODE_REQUIREMENTS,
+  mapShipmentSourceToFormData,
+  normalizePostalServiceMode,
+  serializeShipmentFormDataForTemplate,
+  type ShipmentFormData,
+} from "@/utils/shipmentFormData";
 
-const CARGO_CATEGORIES = [
-  { value: "parcel", label: "Parcel" },
-  { value: "documents", label: "Documents" },
-  { value: "pallet", label: "Pallet" },
-];
-
-const PAYER_TYPES = [
-  { value: "Sender", label: "Sender" },
-  { value: "Recipient", label: "Recipient" },
-  { value: "ThirdPerson", label: "Third person" },
-];
-
-const DELIVERY_TYPES = [
-  { value: "", label: "Nova Post default" },
-  { value: "standard", label: "Standard" },
-  { value: "economy", label: "Economy" },
-  { value: "express", label: "Express" },
-];
-
-const POSTAL_SERVICE_MODES = [
-  {
-    value: "nova-poshta",
-    label: "Nova Post",
-    description: "Branch-to-branch Nova Poshta shipment.",
-  },
-  {
-    value: "ukrposhta",
-    label: "Ukrposhta",
-    description: "Mocked address shipment for now.",
-  },
-  {
-    value: "meest",
-    label: "Meest",
-    description: "Mocked courier/address shipment for now.",
-  },
-] as const;
-
-type PostalServiceMode = (typeof POSTAL_SERVICE_MODES)[number]["value"];
-
-const POSTAL_SERVICE_MODE_OPTIONS = POSTAL_SERVICE_MODES.map(
-  ({ value, label }) => ({ value, label }),
-);
-
-const MODE_FIELD_REQUIREMENTS: Record<
-  PostalServiceMode,
-  {
-    division: boolean;
-    postalCode: boolean;
-    city: boolean;
-    address: boolean;
-    dimensions: boolean;
-    insurance: boolean;
-  }
-> = {
-  "nova-poshta": {
-    division: true,
-    postalCode: false,
-    city: false,
-    address: false,
-    dimensions: true,
-    insurance: true,
-  },
-  ukrposhta: {
-    division: false,
-    postalCode: true,
-    city: true,
-    address: true,
-    dimensions: false,
-    insurance: false,
-  },
-  meest: {
-    division: false,
-    postalCode: false,
-    city: true,
-    address: true,
-    dimensions: true,
-    insurance: false,
-  },
-};
-
-const personSchema = z.object({
-  name: z.string().min(1, "Required"),
-  phone: z.string().min(1, "Required"),
-  countryCode: z.string(),
-  divisionNumber: z.string().optional(),
-  city: z.string().optional(),
-  address: z.string().optional(),
-  postalCode: z.string().optional(),
-});
-
-const schema = z
-  .object({
-    postalServiceMode: z.enum(["nova-poshta", "ukrposhta", "meest"]),
-    payerType: z.enum(["Sender", "Recipient", "ThirdPerson"]),
-    payerContractNumber: z.string().optional(),
-    clientOrder: z.string().max(50).optional(),
-    note: z.string().max(255).optional(),
-    deliveryType: z.enum(["standard", "economy", "express"]).optional(),
-    readyToShip: z.boolean().optional(),
-    sender: personSchema,
-    recipient: personSchema,
-    parcel: z.object({
-      cargoCategory: z.string().min(1, "Required"),
-      parcelDescription: z.string().min(1, "Required"),
-      insuranceCost: z.number().min(0, "Must be >= 0"),
-      actualWeight: z.number().min(0, "Must be >= 0"),
-      dimensions: z.object({
-        length: z.number().min(0, "Must be >= 0"),
-        width: z.number().min(0, "Must be >= 0"),
-        height: z.number().min(0, "Must be >= 0"),
-      }),
-    }),
-    invoice: z.object({
-      cost: z.number().min(0, "Must be >= 0"),
-      currency: z.string(),
-    }),
-  })
-  .superRefine((values, ctx) => {
-    const requirements = MODE_FIELD_REQUIREMENTS[values.postalServiceMode];
-
-    function requireText(path: (string | number)[], value: string | undefined) {
-      if (!value?.trim()) {
-        ctx.addIssue({ code: "custom", path, message: "Required" });
-      }
-    }
-
-    function requirePositive(path: (string | number)[], value: number) {
-      if (value <= 0) {
-        ctx.addIssue({ code: "custom", path, message: "Must be > 0" });
-      }
-    }
-
-    (["sender", "recipient"] as const).forEach((party) => {
-      if (requirements.division) requireText([party, "divisionNumber"], values[party].divisionNumber);
-      if (requirements.city) requireText([party, "city"], values[party].city);
-      if (requirements.address) requireText([party, "address"], values[party].address);
-      if (requirements.postalCode) requireText([party, "postalCode"], values[party].postalCode);
-    });
-
-    requirePositive(["parcel", "actualWeight"], values.parcel.actualWeight);
-
-    if (requirements.dimensions) {
-      requirePositive(["parcel", "dimensions", "length"], values.parcel.dimensions.length);
-      requirePositive(["parcel", "dimensions", "width"], values.parcel.dimensions.width);
-      requirePositive(["parcel", "dimensions", "height"], values.parcel.dimensions.height);
-    }
-
-    if (values.payerType === "ThirdPerson") {
-      requireText(["payerContractNumber"], values.payerContractNumber);
-    }
+function createShipmentSchema(t: (key: string, options?: Record<string, unknown>) => string) {
+  const personSchema = z.object({
+    name: z.string().min(1, t("shipmentForm.validation.required")).max(100, t("shipmentForm.validation.nameMax")),
+    phone: z.string().min(1, t("shipmentForm.validation.required")),
+    countryCode: z.string().length(2, t("shipmentForm.validation.countryCodeLength")),
+    companyTin: z.string().max(20).optional(),
+    companyName: z.string().max(100).optional(),
+    eoriCode: z.string().min(3).max(17).optional(),
+    email: z.union([z.string().email(), z.literal("")]).optional(),
+    divisionNumber: z.string().optional(),
+    divisionID: z.number().int().positive().optional(),
+    city: z.string().optional(),
+    address: z.string().optional(),
+    postalCode: z.string().optional(),
   });
 
-type FormValues = z.infer<typeof schema>;
+  const senderPersonSchema = personSchema.extend({
+    ioss: z.string().max(12).optional(),
+  });
 
-const DEFAULT_FORM_VALUES: FormValues = {
-  postalServiceMode: "nova-poshta",
-  payerType: "Sender",
-  payerContractNumber: "",
-  clientOrder: "",
-  note: "",
-  deliveryType: undefined,
-  readyToShip: false,
-  sender: {
-    name: "",
-    phone: "",
-    countryCode: "UA",
-    divisionNumber: "",
-    city: "",
-    address: "",
-    postalCode: "",
-  },
-  recipient: {
-    name: "",
-    phone: "",
-    countryCode: "UA",
-    divisionNumber: "",
-    city: "",
-    address: "",
-    postalCode: "",
-  },
-  parcel: {
-    cargoCategory: "parcel",
-    parcelDescription: "",
-    insuranceCost: 0,
-    actualWeight: 0,
-    dimensions: { length: 0, width: 0, height: 0 },
-  },
-  invoice: { cost: 0, currency: "UAH" },
-};
+  return z
+    .object({
+      postalServiceMode: z.enum(["nova-poshta", "ukrposhta", "meest"]),
+      payerType: z.enum(["Sender", "Recipient", "ThirdPerson"]),
+      payerContractNumber: z.string().max(20).optional(),
+      clientOrder: z.string().max(50).optional(),
+      note: z.string().max(255).optional(),
+      deliveryType: z.enum(["", "standard", "economy", "express"]).optional(),
+      readyToShip: z.boolean().optional(),
+      sender: senderPersonSchema,
+      recipient: personSchema,
+      parcel: z.object({
+        cargoCategory: z.enum(["parcel", "documents", "pallet"]),
+        parcelDescription: z.string().min(1, t("shipmentForm.validation.required")).max(255, t("shipmentForm.validation.descriptionMax")),
+        insuranceCost: z.number().min(0, t("shipmentForm.validation.nonNegative")),
+        actualWeight: z.number().min(0, t("shipmentForm.validation.nonNegative")),
+        dimensions: z.object({
+          length: z.number().min(0, t("shipmentForm.validation.nonNegative")),
+          width: z.number().min(0, t("shipmentForm.validation.nonNegative")),
+          height: z.number().min(0, t("shipmentForm.validation.nonNegative")),
+        }),
+      }),
+      invoice: z.object({
+        cost: z.number().min(0, t("shipmentForm.validation.nonNegative")),
+        currency: z.string().length(3, t("shipmentForm.validation.currencyLength")),
+        customerNumber: z.string().max(50).optional(),
+        type: z.enum(["Invoice", "ProformaInvoice"]).optional(),
+        incoterm: z.enum(["DAP", "DDP"]).optional(),
+        exportReason: z.enum(["ForPersonalPurposes", "Selling", "Repair", "Return", "Other"]).optional(),
+        payerFeesCustoms: z.enum(["Sender", "Recipient", "ThirdPerson"]).optional(),
+      }),
+    })
+    .superRefine((values, ctx) => {
+      const requirements = POSTAL_SERVICE_MODE_REQUIREMENTS[values.postalServiceMode];
 
-function normalizePostalServiceMode(value?: string | null): PostalServiceMode {
-  switch (value) {
-    case "nova-poshta":
-    case "nova-post":
-      return "nova-poshta";
-    case "ukrposhta":
-      return "ukrposhta";
-    case "meest":
-      return "meest";
-    default:
-      return "nova-poshta";
-  }
+      function requireText(path: (string | number)[], value: string | undefined) {
+        if (!value?.trim()) {
+          ctx.addIssue({ code: "custom", path, message: t("shipmentForm.validation.required") });
+        }
+      }
+
+      function requirePositive(path: (string | number)[], value: number, message?: string) {
+        if (value <= 0) {
+          ctx.addIssue({ code: "custom", path, message: message ?? t("shipmentForm.validation.positive") });
+        }
+      }
+
+      (["sender", "recipient"] as const).forEach((party) => {
+        if (!isValidUaPhone(values[party].phone)) {
+          ctx.addIssue({ code: "custom", path: [party, "phone"], message: t("shipmentForm.validation.invalidPhone") });
+        }
+
+        if (requirements.division) requireText([party, "divisionNumber"], values[party].divisionNumber);
+        if (requirements.city) requireText([party, "city"], values[party].city);
+        if (requirements.address) requireText([party, "address"], values[party].address);
+        if (requirements.postalCode) requireText([party, "postalCode"], values[party].postalCode);
+      });
+
+      if (values.postalServiceMode === "nova-poshta" && !values.deliveryType) {
+        ctx.addIssue({ code: "custom", path: ["deliveryType"], message: t("shipmentForm.validation.deliveryTypeRequired") });
+      }
+
+      requirePositive(["parcel", "actualWeight"], values.parcel.actualWeight);
+
+      if (requirements.dimensions) {
+        requirePositive(["parcel", "dimensions", "length"], values.parcel.dimensions.length, t("shipmentForm.validation.dimensionLength"));
+        requirePositive(["parcel", "dimensions", "width"], values.parcel.dimensions.width, t("shipmentForm.validation.dimensionWidth"));
+        requirePositive(["parcel", "dimensions", "height"], values.parcel.dimensions.height, t("shipmentForm.validation.dimensionHeight"));
+      }
+
+      if (requirements.insurance) {
+        requirePositive(["parcel", "insuranceCost"], values.parcel.insuranceCost);
+      }
+
+      if (values.payerType === "ThirdPerson") {
+        requireText(["payerContractNumber"], values.payerContractNumber);
+        if (values.payerContractNumber && values.payerContractNumber.length < 2) {
+          ctx.addIssue({ code: "custom", path: ["payerContractNumber"], message: t("shipmentForm.validation.payerContractMin") });
+        }
+      }
+    });
 }
 
-function toPositiveNumber(value: unknown, fallback = 0): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
+type FormValues = z.infer<ReturnType<typeof createShipmentSchema>>;
 
-function mapShipmentSourceToFormValues(
-  data: Record<string, unknown>,
-  fallbackMode?: string | null,
-): FormValues {
-  type R = Record<string, unknown>;
-  const parcel = (data.parcel as R | undefined) ?? ((data.parcels as R[] | undefined)?.[0]) ?? {} as R;
-  const dimensions = (parcel.dimensions as R | undefined) ?? {} as R;
-  const operator = data.operator;
-  const mode = normalizePostalServiceMode(
-    (data.postalServiceMode as string | undefined)
-      ?? (typeof operator === "string" ? operator : (operator as R | undefined)?.slug as string | undefined)
-      ?? fallbackMode,
-  );
-
-  const dataParcel = data.parcel as R | undefined;
-  const dataParcelDims = dataParcel?.dimensions as R | undefined;
-  const actualWeight =
-    dataParcel?.actualWeight != null
-      ? toPositiveNumber(dataParcel.actualWeight)
-      : toPositiveNumber(parcel.actualWeight) / 1000;
-  const length =
-    dataParcelDims?.length != null
-      ? toPositiveNumber(dataParcelDims.length)
-      : toPositiveNumber(parcel.length ?? dimensions.length) / 10;
-  const width =
-    dataParcelDims?.width != null
-      ? toPositiveNumber(dataParcelDims.width)
-      : toPositiveNumber(parcel.width ?? dimensions.width) / 10;
-  const height =
-    dataParcelDims?.height != null
-      ? toPositiveNumber(dataParcelDims.height)
-      : toPositiveNumber(parcel.height ?? dimensions.height) / 10;
-
-  const sender = data.sender as R | undefined;
-  const recipient = data.recipient as R | undefined;
-  const invoice = data.invoice as R | undefined;
-
-  return {
-    postalServiceMode: mode,
-    payerType: (data.payerType as "Sender" | "Recipient" | "ThirdPerson" | undefined) ?? "Sender",
-    payerContractNumber: (data.payerContractNumber as string | undefined) ?? "",
-    clientOrder: (data.clientOrder as string | undefined) ?? "",
-    note: (data.note as string | undefined) ?? "",
-    deliveryType: data.deliveryType as "standard" | "economy" | "express" | undefined,
-    readyToShip: (data.readyToShip as boolean | undefined) ?? data.status === "ReadyToShip",
-    sender: {
-      name: (sender?.name as string | undefined) ?? "",
-      phone: (sender?.phone as string | undefined) ?? "",
-      countryCode: (sender?.countryCode as string | undefined) ?? "UA",
-      divisionNumber: (sender?.divisionNumber as string | undefined) ?? "",
-      city: (sender?.city as string | undefined) ?? "",
-      address: (sender?.address as string | undefined) ?? "",
-      postalCode: (sender?.postalCode as string | undefined) ?? "",
-    },
-    recipient: {
-      name: (recipient?.name as string | undefined) ?? (data.recipientName as string | undefined) ?? "",
-      phone: (recipient?.phone as string | undefined) ?? (data.recipientPhone as string | undefined) ?? "",
-      countryCode: (recipient?.countryCode as string | undefined) ?? "UA",
-      divisionNumber: (recipient?.divisionNumber as string | undefined) ?? "",
-      city: (recipient?.city as string | undefined) ?? "",
-      address: (recipient?.address as string | undefined) ?? (data.deliveryAddress as string | undefined) ?? "",
-      postalCode: (recipient?.postalCode as string | undefined) ?? "",
-    },
-    parcel: {
-      cargoCategory: (parcel.cargoCategory as string | undefined) ?? "parcel",
-      parcelDescription: (parcel.parcelDescription as string | undefined) ?? "",
-      insuranceCost: toPositiveNumber(parcel.insuranceCost),
-      actualWeight,
-      dimensions: {
-        length,
-        width,
-        height,
-      },
-    },
-    invoice: {
-      cost: toPositiveNumber(invoice?.cost),
-      currency: (invoice?.currency as string | undefined) ?? "UAH",
-    },
-  };
+function normalizePhone(raw: string): string {
+  return normalizeUaPhone(raw);
 }
 
 function formatRecipientDisplayName(recipient: Recipient): string {
@@ -345,11 +175,11 @@ function FieldError({ message }: { message?: string }) {
   return <p className="mt-1 text-xs text-red-600">{message}</p>;
 }
 
-function FormLabel({ children, required }: { children: ReactNode; required?: boolean }) {
+function FormLabel({ children, required, optionalLabel }: { children: ReactNode; required?: boolean; optionalLabel: string }) {
   return (
     <label className="mb-1.5 block text-sm font-medium text-neutral-700">
       {children}
-      {!required ? <span className="ml-1 font-normal text-neutral-400">(optional)</span> : null}
+      {!required ? <span className="ml-1 font-normal text-neutral-400">({optionalLabel})</span> : null}
     </label>
   );
 }
@@ -359,19 +189,21 @@ function SelectField({
   options,
   error,
   required,
+  optionalLabel,
   ...props
 }: {
   label: string;
   options: { value: string; label: string }[];
   error?: string;
   required?: boolean;
+  optionalLabel: string;
 } & React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <div>
-      <FormLabel required={required}>{label}</FormLabel>
+      <FormLabel required={required} optionalLabel={optionalLabel}>{label}</FormLabel>
       <select
         {...props}
-        className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+        className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -385,12 +217,12 @@ function SelectField({
 }
 
 export default function ShipmentNewView() {
+  const { t } = useTranslation();
+  const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { mutateAsync, isPending } = useCreateNovaPoshtaShipmentMutation();
-  const { mutateAsync: mutateUkrposhta } = useCreateUkrposhtaShipmentMutation();
-  const { mutateAsync: mutateMeest } = useCreateMeestShipmentMutation();
+  const { mutateAsync: createShipment, isPending } = useCreateShipmentMutation();
   const { mutateAsync: updateNovaPoshta, isPending: isUpdatingNovaPoshta } =
     useUpdateNovaPoshtaShipmentMutation();
   const { mutateAsync: updateUkrposhta, isPending: isUpdatingUkrposhta } =
@@ -404,24 +236,62 @@ export default function ShipmentNewView() {
       sortBy: "createdAt",
       sortOrder: "desc",
     });
+  const { data: postalConnectionsData } = usePostalConnectionsQuery();
   const duplicateTtn = searchParams.get("duplicate")?.trim() ?? "";
   const editTtn = searchParams.get("editTtn")?.trim() ?? "";
   const operatorParam = searchParams.get("operator");
   const draftIdParam = searchParams.get("draftId");
   const draftId = draftIdParam ? Number(draftIdParam) : NaN;
   const activeDraftId = Number.isInteger(draftId) && draftId > 0 ? draftId : 0;
+  const templateIdParam = searchParams.get("templateId");
+  const activeTemplateId = templateIdParam ? Number(templateIdParam) : 0;
   const sourceShipmentTtn = editTtn || duplicateTtn;
   const isShipmentEditMode = Boolean(editTtn);
   const isDuplicateMode = Boolean(duplicateTtn);
   const isDraftMode = Boolean(activeDraftId);
-  const { data: shipmentPrefill, isLoading: isShipmentPrefillLoading } =
-    useShipmentByTtnQuery(sourceShipmentTtn);
   const { data: draftPrefill, isLoading: isDraftPrefillLoading } =
     useDraftQuery(activeDraftId);
+  const shipmentPrefillFromState =
+    (location.state as { shipmentPrefillData?: Record<string, unknown> } | null)
+      ?.shipmentPrefillData;
+
+  const cargoCategories = [
+    { value: "parcel", label: t("shipmentForm.cargoCategory.parcel") },
+    { value: "documents", label: t("shipmentForm.cargoCategory.documents") },
+    { value: "pallet", label: t("shipmentForm.cargoCategory.pallet") },
+  ];
+  const payerTypes = [
+    { value: "Sender", label: t("shipmentForm.payerType.sender") },
+    { value: "Recipient", label: t("shipmentForm.payerType.recipient") },
+    { value: "ThirdPerson", label: t("shipmentForm.payerType.thirdPerson") },
+  ];
+  const deliveryTypes = [
+    { value: "", label: "—" },
+    { value: "standard", label: t("shipmentForm.deliveryType.standard") },
+    { value: "economy", label: t("shipmentForm.deliveryType.economy") },
+    { value: "express", label: t("shipmentForm.deliveryType.express") },
+  ];
+  const postalServiceModes = [
+    {
+      value: "nova-poshta",
+      label: "Nova Post",
+      description: t("shipmentForm.modeDescription.novaPost"),
+    },
+    {
+      value: "ukrposhta",
+      label: "Ukrposhta",
+      description: t("shipmentForm.modeDescription.ukrposhta"),
+    },
+    {
+      value: "meest",
+      label: "Meest",
+      description: t("shipmentForm.modeDescription.meest"),
+    },
+  ] as const;
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: DEFAULT_FORM_VALUES,
+    resolver: zodResolver(createShipmentSchema(t)),
+    defaultValues: DEFAULT_SHIPMENT_FORM_DATA,
   });
 
   const {
@@ -439,14 +309,24 @@ export default function ShipmentNewView() {
     useCreateDraftMutation();
   const { mutateAsync: updateDraft, isPending: isDraftUpdating } =
     useUpdateDraftMutation();
+  const { mutateAsync: incrementTemplateUsage } = useIncrementTemplateUsageMutation();
+  const { data: templatePrefill, isLoading: isTemplatePrefillLoading } =
+    useTemplateQuery(activeTemplateId);
   const appliedPrefillKeyRef = useRef<string | null>(null);
 
   const selectedMode = watch("postalServiceMode");
   const payerType = watch("payerType");
+  const dimLength = watch("parcel.dimensions.length");
+  const dimWidth = watch("parcel.dimensions.width");
+  const dimHeight = watch("parcel.dimensions.height");
+  const parcelVolume =
+    dimLength > 0 && dimWidth > 0 && dimHeight > 0
+      ? dimLength * dimWidth * dimHeight
+      : 0;
   const selectedModeConfig =
-    POSTAL_SERVICE_MODES.find((mode) => mode.value === selectedMode) ??
-    POSTAL_SERVICE_MODES[0];
-  const modeRequirements = MODE_FIELD_REQUIREMENTS[selectedModeConfig.value];
+    postalServiceModes.find((mode) => mode.value === selectedMode) ??
+    postalServiceModes[0];
+  const modeRequirements = POSTAL_SERVICE_MODE_REQUIREMENTS[selectedModeConfig.value];
   const isSubmitting =
     isPending ||
     isDraftPending ||
@@ -455,34 +335,40 @@ export default function ShipmentNewView() {
     isUpdatingUkrposhta ||
     isUpdatingMeest;
   const recipients = recipientsData?.items ?? [];
+  const selectedPostalServiceId =
+    postalConnectionsData?.connections.find(
+      (connection) =>
+        normalizePostalServiceMode(connection.postalService.slug) === selectedMode,
+    )?.postalService.id ?? 0;
   const activePrefillKey = useMemo(() => {
+    if (activeTemplateId) return `template:${activeTemplateId}`;
     if (activeDraftId) return `draft:${activeDraftId}`;
     if (editTtn) return `edit:${editTtn}`;
     if (duplicateTtn) return `duplicate:${duplicateTtn}`;
     return null;
-  }, [activeDraftId, duplicateTtn, editTtn]);
+  }, [activeTemplateId, activeDraftId, duplicateTtn, editTtn]);
   const isPrefillLoading =
-    (Boolean(sourceShipmentTtn) && isShipmentPrefillLoading) ||
-    (Boolean(activeDraftId) && isDraftPrefillLoading);
+    (Boolean(activeDraftId) && isDraftPrefillLoading) ||
+    (Boolean(activeTemplateId) && isTemplatePrefillLoading);
   const pageTitle = isShipmentEditMode
-    ? "Edit shipment"
+    ? t("shipmentForm.editShipment")
     : isDuplicateMode
-      ? "Duplicate shipment"
+      ? t("shipmentForm.duplicateShipment")
       : isDraftMode
-        ? "Edit draft"
-        : "New shipment";
+        ? t("shipmentForm.editDraft")
+        : t("shipmentForm.newShipment");
   const pageDescription = isShipmentEditMode
-    ? `Review and update the ${selectedModeConfig.label} shipment details.`
+    ? t("shipmentForm.editShipmentDescription", { operator: selectedModeConfig.label })
     : isDuplicateMode
-      ? `Review the copied ${selectedModeConfig.label} shipment details before creating a new one.`
+      ? t("shipmentForm.duplicateShipmentDescription", { operator: selectedModeConfig.label })
       : isDraftMode
-        ? `Continue editing the ${selectedModeConfig.label} draft shipment.`
-        : `Fill in the details to create a ${selectedModeConfig.label} shipment.`;
+        ? t("shipmentForm.editDraftDescription", { operator: selectedModeConfig.label })
+        : t("shipmentForm.newShipmentDescription", { operator: selectedModeConfig.label });
   const submitLabel = isShipmentEditMode
-    ? "Update shipment"
+    ? t("shipmentForm.updateShipment")
     : isPending || isUpdatingNovaPoshta || isUpdatingUkrposhta || isUpdatingMeest
-      ? "Saving..."
-      : "Create shipment";
+      ? t("shipmentForm.saving")
+      : t("shipmentForm.createShipment");
 
   useEffect(() => {
     if (!isDirty) return;
@@ -499,31 +385,96 @@ export default function ShipmentNewView() {
   useEffect(() => {
     if (!activePrefillKey || appliedPrefillKeyRef.current === activePrefillKey) return;
 
+    if (activeTemplateId && templatePrefill) {
+      const nextValues = mapShipmentSourceToFormData({
+        ...templatePrefill.templateData,
+        postalServiceMode: templatePrefill.postalService.slug,
+      });
+      console.debug("[ShipmentPrefill] applying template", {
+        activePrefillKey,
+        templateId: activeTemplateId,
+        templatePrefill,
+        nextValues,
+      });
+      form.reset(nextValues);
+      setSelectedRecipientId("");
+      appliedPrefillKeyRef.current = activePrefillKey;
+      incrementTemplateUsage(activeTemplateId).catch(() => {});
+      return;
+    }
+
     if (activeDraftId && draftPrefill?.draftData) {
+      const nextValues = mapShipmentSourceToFormData(
+        draftPrefill.draftData as Record<string, unknown>,
+        draftPrefill.draftData?.postalServiceMode as string | undefined,
+      );
+      console.debug("[ShipmentPrefill] applying draft", {
+        activePrefillKey,
+        draftId: activeDraftId,
+        draftPrefill,
+        nextValues,
+      });
       form.reset(
-        mapShipmentSourceToFormValues(
-          draftPrefill.draftData as Record<string, unknown>,
-          draftPrefill.draftData?.postalServiceMode as string | undefined,
-        ),
+        nextValues,
       );
       setSelectedRecipientId("");
       appliedPrefillKeyRef.current = activePrefillKey;
       return;
     }
 
-    if (sourceShipmentTtn && shipmentPrefill) {
-      form.reset(mapShipmentSourceToFormValues(shipmentPrefill as Record<string, unknown>, operatorParam));
+    if (sourceShipmentTtn && shipmentPrefillFromState) {
+      const nextValues = mapShipmentSourceToFormData(
+        shipmentPrefillFromState,
+        operatorParam,
+      );
+      console.debug("[ShipmentPrefill] applying shipment", {
+        activePrefillKey,
+        sourceShipmentTtn,
+        operatorParam,
+        shipmentPrefillFromState,
+        nextValues,
+      });
+      form.reset(nextValues);
       setSelectedRecipientId("");
       appliedPrefillKeyRef.current = activePrefillKey;
     }
   }, [
+    activeTemplateId,
+    templatePrefill,
     activeDraftId,
     activePrefillKey,
     draftPrefill,
     form,
+    incrementTemplateUsage,
     operatorParam,
-    shipmentPrefill,
+    shipmentPrefillFromState,
     sourceShipmentTtn,
+  ]);
+
+  useEffect(() => {
+    if (!activePrefillKey) return;
+
+    console.debug("[ShipmentPrefill] route state", {
+      activePrefillKey,
+      activeTemplateId,
+      activeDraftId,
+      sourceShipmentTtn,
+      isDraftPrefillLoading,
+      isTemplatePrefillLoading,
+      shipmentPrefillFromState,
+      draftPrefill,
+      templatePrefill,
+    });
+  }, [
+    activeDraftId,
+    activePrefillKey,
+    activeTemplateId,
+    draftPrefill,
+    isDraftPrefillLoading,
+    isTemplatePrefillLoading,
+    shipmentPrefillFromState,
+    sourceShipmentTtn,
+    templatePrefill,
   ]);
 
   function handleRecipientSelect(recipientId: string) {
@@ -537,7 +488,7 @@ export default function ShipmentNewView() {
       shouldDirty: true,
       shouldTouch: true,
     });
-    form.setValue("recipient.phone", recipient.phone, {
+    form.setValue("recipient.phone", normalizePhone(recipient.phone), {
       shouldDirty: true,
       shouldTouch: true,
     });
@@ -565,22 +516,25 @@ export default function ShipmentNewView() {
       } else {
         await createDraft({ draftData: getValues() as Record<string, unknown> });
       }
-      toast({ title: "Draft saved", color: "success" });
+      toast({ title: t("shipmentForm.draftSaved"), color: "success" });
       setManualGuardOpen(false);
       navigate(APP_ROUTES.shipments);
     } catch {
-      toast({ title: "Failed to save draft", color: "error" });
+      toast({ title: t("shipmentForm.failedToSaveDraft"), color: "error" });
     }
   }
 
   async function onSubmit(values: FormValues) {
+    const senderPhone = normalizePhone(values.sender.phone);
+    const recipientPhone = normalizePhone(values.recipient.phone);
     try {
       if (values.postalServiceMode === "ukrposhta" || values.postalServiceMode === "meest") {
-        const body = {
-          sender: { name: values.sender.name, phone: values.sender.phone },
+        const simpleBody = {
+          operator: values.postalServiceMode as "ukrposhta" | "meest",
+          sender: { name: values.sender.name, phone: senderPhone },
           recipient: {
             name: values.recipient.name,
-            phone: values.recipient.phone,
+            phone: recipientPhone,
             address: values.recipient.address ?? "",
             city: values.recipient.city ?? "",
           },
@@ -592,36 +546,35 @@ export default function ShipmentNewView() {
         if (isShipmentEditMode && editTtn) {
           const updateFn =
             values.postalServiceMode === "ukrposhta" ? updateUkrposhta : updateMeest;
-          await updateFn({ ttn: editTtn, body });
+          const { operator: _op, ...updateBody } = simpleBody;
+          await updateFn({ ttn: editTtn, body: updateBody });
         } else {
-          const createFn =
-            values.postalServiceMode === "ukrposhta" ? mutateUkrposhta : mutateMeest;
-          await createFn(body);
+          await createShipment(simpleBody);
         }
         toast({
-          title: isShipmentEditMode ? "Shipment updated" : "Shipment created",
+          title: isShipmentEditMode ? t("shipmentForm.shipmentUpdated") : t("shipmentForm.shipmentCreated"),
           color: "success",
         });
         navigate(APP_ROUTES.shipments);
         return;
       }
 
-      const body = {
+      const novaPostBody = {
         payerType: values.payerType,
         payerContractNumber: values.payerContractNumber || undefined,
         clientOrder: values.clientOrder || undefined,
         note: values.note || undefined,
-        deliveryType: values.deliveryType,
+        deliveryType: values.deliveryType ? values.deliveryType : undefined,
         status: values.readyToShip ? ("ReadyToShip" as const) : undefined,
         sender: {
           name: values.sender.name,
-          phone: values.sender.phone,
+          phone: senderPhone,
           countryCode: values.sender.countryCode,
           divisionNumber: values.sender.divisionNumber || undefined,
         },
         recipient: {
           name: values.recipient.name,
-          phone: values.recipient.phone,
+          phone: recipientPhone,
           countryCode: values.recipient.countryCode,
           divisionNumber: values.recipient.divisionNumber || undefined,
         },
@@ -640,12 +593,14 @@ export default function ShipmentNewView() {
       };
       const result =
         isShipmentEditMode && editTtn
-          ? await updateNovaPoshta({ ttn: editTtn, body })
-          : await mutateAsync(body);
+          ? await updateNovaPoshta({ ttn: editTtn, body: novaPostBody })
+          : await createShipment({ ...novaPostBody, operator: 'nova-post' as const });
+      const scheduledDeliveryDate =
+        'scheduledDeliveryDate' in result ? result.scheduledDeliveryDate : null;
       toast({
-        title: isShipmentEditMode ? "Shipment updated" : "Shipment created",
-        description: result.scheduledDeliveryDate
-          ? `Est. delivery: ${new Date(result.scheduledDeliveryDate).toLocaleDateString()}`
+        title: isShipmentEditMode ? t("shipmentForm.shipmentUpdated") : t("shipmentForm.shipmentCreated"),
+        description: scheduledDeliveryDate
+          ? t("shipmentForm.estimatedDelivery", { date: new Date(scheduledDeliveryDate).toLocaleDateString() })
           : undefined,
         color: "success",
       });
@@ -653,20 +608,22 @@ export default function ShipmentNewView() {
     } catch (err) {
       if (err instanceof ConnectionInvalidError) {
         toast({
-          title: "Nova Post connection is invalid",
-          description: "Reconnect your Nova Post account in Profile.",
+          title: t("shipmentForm.connectionInvalidTitle"),
+          description: t("shipmentForm.connectionInvalidDescription"),
           color: "error",
         });
       } else if (err instanceof OperatorUnavailableError) {
         toast({
-          title: "Nova Post is temporarily unavailable",
-          description: "Please try again later.",
+          title: t("shipmentForm.operatorUnavailableTitle"),
+          description: t("shipmentForm.operatorUnavailableDescription"),
           color: "error",
         });
+      } else if (err instanceof ApiValidationError && err.validationDetails.length > 0) {
+        toast({ title: err.message, description: err.validationDetails.join('\n'), color: "error" });
       } else {
         toast({
-          title: "Failed to create shipment",
-          description: err instanceof Error ? err.message : "Please try again.",
+          title: t("shipmentForm.failedToCreate"),
+          description: err instanceof Error ? err.message : t("shipmentForm.tryAgain"),
           color: "error",
         });
       }
@@ -677,7 +634,7 @@ export default function ShipmentNewView() {
     return (
       <main className="mx-auto max-w-2xl px-6 py-10">
         <h1 className="mb-1 text-2xl font-semibold text-neutral-900">{pageTitle}</h1>
-        <p className="text-sm text-neutral-500">Loading shipment data...</p>
+        <p className="text-sm text-neutral-500">{t("shipmentForm.loadingShipmentData")}</p>
       </main>
     );
   }
@@ -689,11 +646,12 @@ export default function ShipmentNewView() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-8">
         <section>
-          <SectionHeader title="Postal service" />
+          <SectionHeader title={t("shipmentForm.sections.postalService")} />
           <SelectField
-            label="Mode"
-            options={POSTAL_SERVICE_MODE_OPTIONS}
+            label={t("shipmentForm.fields.mode")}
+            options={postalServiceModes.map(({ value, label }) => ({ value, label }))}
             required
+            optionalLabel={t("shipmentForm.optional")}
             error={errors.postalServiceMode?.message}
             disabled={isShipmentEditMode}
             {...register("postalServiceMode")}
@@ -703,66 +661,67 @@ export default function ShipmentNewView() {
 
         {selectedMode === "nova-poshta" ? (
           <section>
-            <SectionHeader title="Shipping details" />
+            <SectionHeader title={t("shipmentForm.sections.shippingDetails")} />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <SelectField
-                label="Payer"
-                options={PAYER_TYPES}
+                label={t("shipmentForm.fields.payer")}
+                options={payerTypes}
                 required
+                optionalLabel={t("shipmentForm.optional")}
                 error={errors.payerType?.message}
                 {...register("payerType")}
               />
               {payerType === "ThirdPerson" ? (
                 <div>
-                  <FormLabel required>Contract number</FormLabel>
-                  <Input {...register("payerContractNumber")} placeholder="Contract number" error={errors.payerContractNumber?.message} />
+                  <FormLabel required optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.contractNumber")}</FormLabel>
+                  <Input {...register("payerContractNumber")} placeholder={t("shipmentForm.placeholders.contractNumber")} error={errors.payerContractNumber?.message} />
                 </div>
               ) : null}
-              <SelectField label="Delivery type" options={DELIVERY_TYPES} error={errors.deliveryType?.message} {...register("deliveryType")} />
+              <SelectField label={t("shipmentForm.fields.deliveryType")} options={deliveryTypes} required optionalLabel={t("shipmentForm.optional")} error={errors.deliveryType?.message} {...register("deliveryType")} />
               <div>
-                <FormLabel>Client order</FormLabel>
-                <Input {...register("clientOrder")} placeholder="Your internal order ID" error={errors.clientOrder?.message} />
+                <FormLabel optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.clientOrder")}</FormLabel>
+                <Input {...register("clientOrder")} placeholder={t("shipmentForm.placeholders.clientOrder")} error={errors.clientOrder?.message} />
               </div>
               <div className="sm:col-span-2">
-                <FormLabel>Note</FormLabel>
-                <Input {...register("note")} placeholder="Special delivery instructions" error={errors.note?.message} />
+                <FormLabel optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.note")}</FormLabel>
+                <Input {...register("note")} placeholder={t("shipmentForm.placeholders.note")} error={errors.note?.message} />
               </div>
             </div>
           </section>
         ) : null}
         <section>
-          <SectionHeader title="Sender" />
+          <SectionHeader title={t("shipmentForm.sections.sender")} />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <FormLabel required>Full name</FormLabel>
-              <Input {...register("sender.name")} placeholder="Ivan Petrenko" error={errors.sender?.name?.message} />
+              <FormLabel required optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.fullName")}</FormLabel>
+              <Input {...register("sender.name")} placeholder={t("shipmentForm.placeholders.senderName")} error={errors.sender?.name?.message} />
             </div>
             <div>
-              <FormLabel required>Phone</FormLabel>
-              <Input {...register("sender.phone")} placeholder="+380501234567" error={errors.sender?.phone?.message} />
+              <FormLabel required optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.phone")}</FormLabel>
+              <Input {...register("sender.phone")} placeholder={t("shipmentForm.placeholders.senderPhone")} error={errors.sender?.phone?.message} />
             </div>
             {modeRequirements.division ? (
               <div>
-                <FormLabel required>Division number</FormLabel>
-                <Input {...register("sender.divisionNumber")} placeholder="1" error={errors.sender?.divisionNumber?.message} />
+                <FormLabel required optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.divisionNumber")}</FormLabel>
+                <Input {...register("sender.divisionNumber")} placeholder={t("shipmentForm.placeholders.senderDivision")} error={errors.sender?.divisionNumber?.message} />
               </div>
             ) : null}
             {modeRequirements.city ? (
               <div>
-                <FormLabel required>City</FormLabel>
-                <Input {...register("sender.city")} placeholder="Kyiv" error={errors.sender?.city?.message} />
+                <FormLabel required optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.city")}</FormLabel>
+                <Input {...register("sender.city")} placeholder={t("shipmentForm.placeholders.senderCity")} error={errors.sender?.city?.message} />
               </div>
             ) : null}
             {modeRequirements.address ? (
               <div>
-                <FormLabel required>Address</FormLabel>
-                <Input {...register("sender.address")} placeholder="Khreshchatyk St, 1" error={errors.sender?.address?.message} />
+                <FormLabel required optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.address")}</FormLabel>
+                <Input {...register("sender.address")} placeholder={t("shipmentForm.placeholders.senderAddress")} error={errors.sender?.address?.message} />
               </div>
             ) : null}
             {modeRequirements.postalCode ? (
               <div>
-                <FormLabel required>Postal code</FormLabel>
-                <Input {...register("sender.postalCode")} placeholder="01001" error={errors.sender?.postalCode?.message} />
+                <FormLabel required optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.postalCode")}</FormLabel>
+                <Input {...register("sender.postalCode")} placeholder={t("shipmentForm.placeholders.senderPostalCode")} error={errors.sender?.postalCode?.message} />
               </div>
             ) : null}
           </div>
@@ -770,15 +729,15 @@ export default function ShipmentNewView() {
         </section>
 
         <section>
-          <SectionHeader title="Recipient" />
+          <SectionHeader title={t("shipmentForm.sections.recipient")} />
           <div className="mb-4">
-            <FormLabel>Select from saved recipients</FormLabel>
+            <FormLabel optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.selectSavedRecipient")}</FormLabel>
             <select
               value={selectedRecipientId}
               onChange={(event) => handleRecipientSelect(event.target.value)}
-              className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
             >
-              <option value="">{recipientsLoading ? "Loading recipients..." : "Manual entry"}</option>
+              <option value="">{recipientsLoading ? t("shipmentForm.loadingRecipients") : t("shipmentForm.manualEntry")}</option>
               {recipients.map((recipient) => (
                 <option key={recipient.id} value={recipient.id}>
                   {formatRecipientDisplayName(recipient)}
@@ -788,35 +747,35 @@ export default function ShipmentNewView() {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <FormLabel required>Full name</FormLabel>
-              <Input {...register("recipient.name")} placeholder="Olena Kovalenko" error={errors.recipient?.name?.message} />
+              <FormLabel required optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.fullName")}</FormLabel>
+              <Input {...register("recipient.name")} placeholder={t("shipmentForm.placeholders.recipientName")} error={errors.recipient?.name?.message} />
             </div>
             <div>
-              <FormLabel required>Phone</FormLabel>
-              <Input {...register("recipient.phone")} placeholder="+380671234567" error={errors.recipient?.phone?.message} />
+              <FormLabel required optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.phone")}</FormLabel>
+              <Input {...register("recipient.phone")} placeholder={t("shipmentForm.placeholders.recipientPhone")} error={errors.recipient?.phone?.message} />
             </div>
             {modeRequirements.division ? (
               <div>
-                <FormLabel required>Division number</FormLabel>
-                <Input {...register("recipient.divisionNumber")} placeholder="42" error={errors.recipient?.divisionNumber?.message} />
+                <FormLabel required optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.divisionNumber")}</FormLabel>
+                <Input {...register("recipient.divisionNumber")} placeholder={t("shipmentForm.placeholders.recipientDivision")} error={errors.recipient?.divisionNumber?.message} />
               </div>
             ) : null}
             {modeRequirements.city ? (
               <div>
-                <FormLabel required>City</FormLabel>
-                <Input {...register("recipient.city")} placeholder="Lviv" error={errors.recipient?.city?.message} />
+                <FormLabel required optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.city")}</FormLabel>
+                <Input {...register("recipient.city")} placeholder={t("shipmentForm.placeholders.recipientCity")} error={errors.recipient?.city?.message} />
               </div>
             ) : null}
             {modeRequirements.address ? (
               <div>
-                <FormLabel required>Address</FormLabel>
-                <Input {...register("recipient.address")} placeholder="Shevchenka St, 10" error={errors.recipient?.address?.message} />
+                <FormLabel required optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.address")}</FormLabel>
+                <Input {...register("recipient.address")} placeholder={t("shipmentForm.placeholders.recipientAddress")} error={errors.recipient?.address?.message} />
               </div>
             ) : null}
             {modeRequirements.postalCode ? (
               <div>
-                <FormLabel required>Postal code</FormLabel>
-                <Input {...register("recipient.postalCode")} placeholder="79000" error={errors.recipient?.postalCode?.message} />
+                <FormLabel required optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.postalCode")}</FormLabel>
+                <Input {...register("recipient.postalCode")} placeholder={t("shipmentForm.placeholders.recipientPostalCode")} error={errors.recipient?.postalCode?.message} />
               </div>
             ) : null}
           </div>
@@ -824,41 +783,67 @@ export default function ShipmentNewView() {
         </section>
 
         <section>
-          <SectionHeader title="Parcel" />
+          <SectionHeader title={t("shipmentForm.sections.parcel")} />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <SelectField label="Cargo category" options={CARGO_CATEGORIES} required error={errors.parcel?.cargoCategory?.message} {...register("parcel.cargoCategory")} />
+            <SelectField label={t("shipmentForm.fields.cargoCategory")} options={cargoCategories} required optionalLabel={t("shipmentForm.optional")} error={errors.parcel?.cargoCategory?.message} {...register("parcel.cargoCategory")} />
             <div>
-              <FormLabel required>Description</FormLabel>
-              <Input {...register("parcel.parcelDescription")} placeholder="Books, clothing..." error={errors.parcel?.parcelDescription?.message} />
+              <FormLabel required optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.description")}</FormLabel>
+              <Input {...register("parcel.parcelDescription")} placeholder={t("shipmentForm.placeholders.parcelDescription")} error={errors.parcel?.parcelDescription?.message} />
             </div>
             <div>
-              <FormLabel required>Weight (kg)</FormLabel>
-              <Input {...register("parcel.actualWeight", { valueAsNumber: true })} type="number" step="0.001" min="0" placeholder="0.5" error={errors.parcel?.actualWeight?.message} />
+              <FormLabel required optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.weight")}</FormLabel>
+              <Input {...register("parcel.actualWeight", { valueAsNumber: true })} type="number" step="0.001" min="0" placeholder={t("shipmentForm.placeholders.weight")} error={errors.parcel?.actualWeight?.message} />
             </div>
             {modeRequirements.insurance ? (
               <div>
-                <FormLabel required>Declared value (UAH)</FormLabel>
-                <Input {...register("parcel.insuranceCost", { valueAsNumber: true })} type="number" step="1" min="0" placeholder="500" error={errors.parcel?.insuranceCost?.message} />
+                <FormLabel required optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.declaredValue")}</FormLabel>
+                <Input {...register("parcel.insuranceCost", { valueAsNumber: true })} type="number" step="1" min="0" placeholder={t("shipmentForm.placeholders.declaredValue")} error={errors.parcel?.insuranceCost?.message} />
               </div>
             ) : null}
           </div>
           {modeRequirements.dimensions ? (
             <div className="mt-4">
-              <FormLabel required>Dimensions (cm)</FormLabel>
-              <div className="grid grid-cols-3 gap-3">
-                <Input {...register("parcel.dimensions.length", { valueAsNumber: true })} type="number" step="0.1" min="0" placeholder="Length" error={errors.parcel?.dimensions?.length?.message} />
-                <Input {...register("parcel.dimensions.width", { valueAsNumber: true })} type="number" step="0.1" min="0" placeholder="Width" error={errors.parcel?.dimensions?.width?.message} />
-                <Input {...register("parcel.dimensions.height", { valueAsNumber: true })} type="number" step="0.1" min="0" placeholder="Height" error={errors.parcel?.dimensions?.height?.message} />
+              <FormLabel required optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.dimensions")}</FormLabel>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <Input
+                  {...register("parcel.dimensions.length", { valueAsNumber: true })}
+                  type="number" step="0.1" min="0"
+                  placeholder={t("shipmentForm.placeholders.length")}
+                  error={errors.parcel?.dimensions?.length?.message}
+                  className="[appearance:textfield] [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
+                />
+                <Input
+                  {...register("parcel.dimensions.width", { valueAsNumber: true })}
+                  type="number" step="0.1" min="0"
+                  placeholder={t("shipmentForm.placeholders.width")}
+                  error={errors.parcel?.dimensions?.width?.message}
+                  className="[appearance:textfield] [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
+                />
+                <Input
+                  {...register("parcel.dimensions.height", { valueAsNumber: true })}
+                  type="number" step="0.1" min="0"
+                  placeholder={t("shipmentForm.placeholders.height")}
+                  error={errors.parcel?.dimensions?.height?.message}
+                  className="[appearance:textfield] [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
+                />
+                <input
+                  type="text"
+                  readOnly
+                  tabIndex={-1}
+                  value={parcelVolume > 0 ? parcelVolume.toFixed(2) : ""}
+                  placeholder={t("shipmentForm.placeholders.volume")}
+                  className="h-9 w-full cursor-default rounded-md border border-neutral-200 bg-neutral-50 px-3 text-sm text-neutral-500 outline-none"
+                />
               </div>
             </div>
           ) : null}
         </section>
 
         <section>
-          <SectionHeader title="Invoice" />
+          <SectionHeader title={t("shipmentForm.sections.invoice")} />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <FormLabel>Declared cost (UAH)</FormLabel>
+              <FormLabel optionalLabel={t("shipmentForm.optional")}>{t("shipmentForm.fields.declaredCost")}</FormLabel>
               <Input {...register("invoice.cost", { valueAsNumber: true })} type="number" step="1" min="0" placeholder="0" error={errors.invoice?.cost?.message} />
             </div>
           </div>
@@ -866,8 +851,8 @@ export default function ShipmentNewView() {
         </section>
 
         <div className="flex gap-3">
-          <Button type="button" variant="outline" color="green" className="flex-1" disabled={isSubmitting} onClick={() => setIsTemplateModalOpen(true)}>
-            Save as template
+          <Button type="button" variant="outline" color="teal" className="flex-1" disabled={isSubmitting} onClick={() => setIsTemplateModalOpen(true)}>
+            {t("shipmentForm.saveAsTemplate")}
           </Button>
           <Button
             type="button"
@@ -880,9 +865,9 @@ export default function ShipmentNewView() {
               else navigate(APP_ROUTES.shipments);
             }}
           >
-            Cancel
+            {t("common.cancel")}
           </Button>
-          <Button type="submit" color="green" className="flex-1" disabled={isSubmitting}>
+          <Button type="submit" color="teal" className="flex-1" disabled={isSubmitting}>
             {submitLabel}
           </Button>
         </div>
@@ -891,8 +876,10 @@ export default function ShipmentNewView() {
       <SaveAsTemplateModal
         open={isTemplateModalOpen}
         onClose={() => setIsTemplateModalOpen(false)}
+        operatorLabel={selectedModeConfig.label}
+        postalServiceId={selectedPostalServiceId}
         cargoCategory={getValues("parcel.cargoCategory")}
-        templateData={getValues() as Record<string, unknown>}
+        templateData={serializeShipmentFormDataForTemplate(getValues() as ShipmentFormData)}
       />
 
       <CancelGuardModal

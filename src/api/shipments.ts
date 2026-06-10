@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient, parseError } from '@/api/apiClient'
+import { parseApiError, ApiValidationError } from '@/utils/parseApiError'
 import { API_ROUTES } from '@/constants/api-routes'
 import {
   ConnectionInvalidError,
@@ -14,6 +15,8 @@ import type {
   CreateShipmentResponse,
   CreateSimpleShipmentBody,
   CreateSimpleShipmentResponse,
+  CreateShipmentBody,
+  CreateShipmentOutput,
 } from '@/types/shipment'
 
 class ShipmentError extends Error {
@@ -64,92 +67,38 @@ export function useShipmentByTtnQuery(ttn: string) {
   })
 }
 
-export function useDeleteNovaPoshtaShipmentMutation() {
+export function useCreateShipmentMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (ttn: string) => {
-      const res = await apiClient.delete<{ deletedAt: string }>(
-        API_ROUTES.shipments.novaPoshtaDelete(ttn),
-      )
-      if (res.status === 200) return res.data
-      const code = (res.data as unknown as { code?: string })?.code
-      if (res.status === 422 && code === 'CONNECTION_INVALID') throw new ConnectionInvalidError()
-      throw new ShipmentError(res.status, parseError(res.data))
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),
-  })
-}
-
-export function useCreateUkrposhtaShipmentMutation() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: async (body: CreateSimpleShipmentBody) => {
-      const res = await apiClient.post<CreateSimpleShipmentResponse>(
-        API_ROUTES.shipments.ukrposhtaCreate,
-        body,
-      )
-      if (res.status >= 200 && res.status < 300) return res.data
-      throw new ShipmentError(res.status, parseError(res.data))
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),
-  })
-}
-
-export function useDeleteUkrposhtaShipmentMutation() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: async (ttn: string) => {
-      const res = await apiClient.delete<{ deletedAt: string }>(
-        API_ROUTES.shipments.ukrposhtaDelete(ttn),
-      )
-      if (res.status === 200) return res.data
-      throw new ShipmentError(res.status, parseError(res.data))
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),
-  })
-}
-
-export function useCreateMeestShipmentMutation() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: async (body: CreateSimpleShipmentBody) => {
-      const res = await apiClient.post<CreateSimpleShipmentResponse>(
-        API_ROUTES.shipments.meestCreate,
-        body,
-      )
-      if (res.status >= 200 && res.status < 300) return res.data
-      throw new ShipmentError(res.status, parseError(res.data))
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),
-  })
-}
-
-export function useDeleteMeestShipmentMutation() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: async (ttn: string) => {
-      const res = await apiClient.delete<{ deletedAt: string }>(
-        API_ROUTES.shipments.meestDelete(ttn),
-      )
-      if (res.status === 200) return res.data
-      throw new ShipmentError(res.status, parseError(res.data))
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),
-  })
-}
-
-export function useCreateNovaPoshtaShipmentMutation() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: async (body: CreateNovaPoshtaShipmentBody) => {
-      const res = await apiClient.post<CreateShipmentResponse>(
-        API_ROUTES.shipments.novaPoshtaCreate,
+    mutationFn: async (body: CreateShipmentBody): Promise<CreateShipmentOutput> => {
+      const res = await apiClient.post<CreateShipmentOutput>(
+        API_ROUTES.shipments.create,
         body,
       )
       if (res.status >= 200 && res.status < 300) return res.data
       const code = (res.data as unknown as { code?: string })?.code
       if (res.status === 422 && code === 'CONNECTION_INVALID') throw new ConnectionInvalidError()
       if (res.status === 503 && code === 'OPERATOR_UNAVAILABLE') throw new OperatorUnavailableError()
+      if (res.status === 400 || res.status === 422) {
+        const { message, validationDetails } = parseApiError(res.data)
+        throw new ApiValidationError(res.status, message, validationDetails)
+      }
+      throw new ShipmentError(res.status, parseError(res.data))
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),
+  })
+}
+
+export function useDeleteShipmentMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ operator, ref }: { operator: string; ref: string }) => {
+      const res = await apiClient.delete<{ deletedAt: string }>(
+        API_ROUTES.shipments.delete(operator, ref),
+      )
+      if (res.status === 200) return res.data
+      const code = (res.data as unknown as { code?: string })?.code
+      if (res.status === 422 && code === 'CONNECTION_INVALID') throw new ConnectionInvalidError()
       throw new ShipmentError(res.status, parseError(res.data))
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),
@@ -178,6 +127,10 @@ export function useUpdateNovaPoshtaShipmentMutation() {
       if (res.status === 503 && code === 'OPERATOR_UNAVAILABLE') {
         throw new OperatorUnavailableError()
       }
+      if (res.status === 400 || res.status === 422) {
+        const { message, validationDetails } = parseApiError(res.data)
+        throw new ApiValidationError(res.status, message, validationDetails)
+      }
       throw new ShipmentError(res.status, parseError(res.data))
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),
@@ -199,6 +152,10 @@ export function useUpdateUkrposhtaShipmentMutation() {
         body,
       )
       if (res.status >= 200 && res.status < 300) return res.data
+      if (res.status === 400 || res.status === 422) {
+        const { message, validationDetails } = parseApiError(res.data)
+        throw new ApiValidationError(res.status, message, validationDetails)
+      }
       throw new ShipmentError(res.status, parseError(res.data))
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),
@@ -220,6 +177,10 @@ export function useUpdateMeestShipmentMutation() {
         body,
       )
       if (res.status >= 200 && res.status < 300) return res.data
+      if (res.status === 400 || res.status === 422) {
+        const { message, validationDetails } = parseApiError(res.data)
+        throw new ApiValidationError(res.status, message, validationDetails)
+      }
       throw new ShipmentError(res.status, parseError(res.data))
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),

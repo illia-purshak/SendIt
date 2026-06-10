@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
@@ -56,7 +56,7 @@ function SandboxForm({ onError, onSuccess }: FormProps) {
             value={field.value}
             onChange={field.onChange}
             onBlur={field.onBlur}
-            color="green"
+            color="teal"
             error={fieldState.error?.message}
             required
           />
@@ -65,7 +65,7 @@ function SandboxForm({ onError, onSuccess }: FormProps) {
       <p className="text-xs text-neutral-500">
         Enter the phone number registered at my.novapost.com (non-UA format, e.g. 49XXXXXXXXX).
       </p>
-      <Button type="submit" color="green" className="mt-1 w-full" disabled={isSubmitting}>
+      <Button type="submit" color="teal" className="mt-1 w-full" disabled={isSubmitting}>
         {isSubmitting ? 'Connecting…' : 'Connect'}
       </Button>
     </form>
@@ -107,7 +107,7 @@ function ProductionForm({ onError, onSuccess }: FormProps) {
             value={field.value}
             onChange={field.onChange}
             onBlur={field.onBlur}
-            color="green"
+            color="teal"
             error={fieldState.error?.message}
             required
           />
@@ -116,7 +116,7 @@ function ProductionForm({ onError, onSuccess }: FormProps) {
       <p className="text-xs text-neutral-500">
         Provide the API key issued by your Nova Post manager.
       </p>
-      <Button type="submit" color="green" className="mt-1 w-full" disabled={isSubmitting}>
+      <Button type="submit" color="teal" className="mt-1 w-full" disabled={isSubmitting}>
         {isSubmitting ? 'Connecting…' : 'Connect'}
       </Button>
     </form>
@@ -153,7 +153,7 @@ export default function NovaPostConnectPage() {
             onClick={() => handleModeChange('sandbox')}
             className={
               mode === 'sandbox'
-                ? 'flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors bg-green-600 text-white'
+                ? 'flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors bg-teal-600 text-white'
                 : 'flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors text-neutral-500 hover:text-neutral-700'
             }
           >
@@ -164,7 +164,7 @@ export default function NovaPostConnectPage() {
             onClick={() => handleModeChange('production')}
             className={
               mode === 'production'
-                ? 'flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors bg-green-600 text-white'
+                ? 'flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors bg-teal-600 text-white'
                 : 'flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors text-neutral-500 hover:text-neutral-700'
             }
           >

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   TicketClosedError,
@@ -134,7 +134,7 @@ export default function AdminMySupportPage() {
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-semibold text-neutral-900">My tickets</h1>
           {totalUnreadAssigned > 0 && (
-            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-green-700 px-1.5 text-xs font-semibold text-white">
+            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-teal-700 px-1.5 text-xs font-semibold text-white">
               {totalUnreadAssigned > 99 ? "99+" : totalUnreadAssigned}
             </span>
           )}
@@ -191,7 +191,7 @@ export default function AdminMySupportPage() {
                       onClick={() => openTicket(ticket.id)}
                       className={[
                         "w-full border-b border-neutral-100 px-4 py-3 text-left transition-colors hover:bg-neutral-50",
-                        activeId === ticket.id ? "bg-green-50" : "",
+                        activeId === ticket.id ? "bg-teal-50" : "",
                       ].join(" ")}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -217,7 +217,7 @@ export default function AdminMySupportPage() {
                           {getSupportStatusLabel(ticket.status)}
                         </span>
                         {unreadCount > 0 && (
-                          <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-green-700 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                          <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-teal-700 px-1.5 py-0.5 text-[11px] font-semibold text-white">
                             {unreadCount}
                           </span>
                         )}
@@ -304,10 +304,10 @@ export default function AdminMySupportPage() {
                       if (isAdminSupportMessage(message)) {
                         return (
                           <div key={message.id} className="flex justify-end">
-                            <div className="max-w-lg rounded-2xl bg-green-600 px-4 py-3 text-sm text-white">
-                              <p className="mb-1 text-xs font-semibold text-green-100">You</p>
+                            <div className="max-w-lg rounded-2xl bg-teal-600 px-4 py-3 text-sm text-white">
+                              <p className="mb-1 text-xs font-semibold text-teal-100">You</p>
                               <p>{message.body}</p>
-                              <p className="mt-2 text-xs text-green-200">
+                              <p className="mt-2 text-xs text-teal-200">
                                 {formatSupportTimestamp(message.createdAt)}
                               </p>
                             </div>
@@ -342,9 +342,9 @@ export default function AdminMySupportPage() {
                         onChange={(event) => setNewMessage(event.target.value)}
                         onKeyDown={(event) => event.key === "Enter" && handleSend()}
                         placeholder="Reply to client..."
-                        className="flex-1 rounded-xl border border-neutral-200 px-4 py-2 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                        className="flex-1 rounded-xl border border-neutral-200 px-4 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
                       />
-                      <Button color="green" onClick={handleSend} disabled={postMessage.isPending}>
+                      <Button color="teal" onClick={handleSend} disabled={postMessage.isPending}>
                         {postMessage.isPending ? "Sending..." : "Send"}
                       </Button>
                     </div>

@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+﻿import type { CSSProperties } from "react";
 import { TrendingDown, TrendingUp } from "lucide-react";
 
 const MONO: CSSProperties = { fontFamily: "'DM Mono', monospace" };
@@ -34,7 +34,7 @@ const StatCard = ({
       ) : (
         <span
           className={`mt-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-            isPositive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+            isPositive ? "bg-teal-50 text-teal-700" : "bg-red-50 text-red-700"
           }`}
         >
           {isPositive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}

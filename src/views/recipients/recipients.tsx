@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,14 +22,9 @@ import { RecipientFormModal } from '@/views/recipients/RecipientFormModal'
 
 const PAGE_SIZE = 20
 
-const TYPE_FILTER_OPTIONS = [
-  { value: 'INDIVIDUAL', label: 'Individual' },
-  { value: 'ORGANIZATION', label: 'Organization' },
-]
-
-function formatRecipientName(recipient: Recipient): string {
+function formatRecipientName(recipient: Recipient, fallback: string): string {
   if (recipient.type === 'ORGANIZATION') {
-    return recipient.companyName?.trim() || '-'
+    return recipient.companyName?.trim() || fallback
   }
 
   const fullName = [recipient.lastName, recipient.firstName, recipient.patronymic]
@@ -36,88 +32,32 @@ function formatRecipientName(recipient: Recipient): string {
     .join(' ')
     .trim()
 
-  return fullName || '-'
+  return fullName || fallback
 }
 
-function formatRecipientAddress(recipient: Recipient): string {
-  if (!recipient.address) return '-'
+function formatRecipientAddress(recipient: Recipient, t: (key: string, options?: Record<string, unknown>) => string): string {
+  if (!recipient.address) return t('recipientsPage.dash')
 
   if (recipient.address.type === 'BRANCH') {
-    return `${recipient.address.city} - Branch ${recipient.address.branchNumber ?? '-'}`
+    return t('recipientsPage.branchAddress', {
+      city: recipient.address.city,
+      branchNumber: recipient.address.branchNumber ?? t('recipientsPage.dash'),
+    })
   }
 
   const streetParts = [
     recipient.address.city,
     recipient.address.street,
     recipient.address.building,
-    recipient.address.flat ? `apt. ${recipient.address.flat}` : null,
+    recipient.address.flat ? t('recipientsPage.apartment', { value: recipient.address.flat }) : null,
     recipient.address.postCode,
   ].filter(Boolean)
 
-  return streetParts.join(', ') || '-'
+  return streetParts.join(', ') || t('recipientsPage.dash')
 }
 
-const COLUMNS: ColumnDef<Recipient>[] = [
-  {
-    id: 'name',
-    header: 'Recipient',
-    cell: (recipient) => (
-      <div className="flex flex-col">
-        <span className="font-medium text-neutral-900">{formatRecipientName(recipient)}</span>
-        {recipient.email ? (
-          <span className="text-xs text-neutral-500">{recipient.email}</span>
-        ) : null}
-      </div>
-    ),
-    sortable: true,
-    filterable: true,
-    filterType: 'text',
-    minWidth: 220,
-  },
-  {
-    id: 'phone',
-    header: 'Phone',
-    cell: (recipient) => recipient.phone,
-    minWidth: 140,
-  },
-  {
-    id: 'address',
-    header: 'Address',
-    cell: (recipient) => (
-      <span className="text-sm text-neutral-700">{formatRecipientAddress(recipient)}</span>
-    ),
-    minWidth: 220,
-  },
-  {
-    id: 'type',
-    header: 'Type',
-    cell: (recipient) => (
-      <span className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-600">
-        {recipient.type === 'INDIVIDUAL' ? 'Individual' : 'Organization'}
-      </span>
-    ),
-    filterable: true,
-    filterType: 'select',
-    filterOptions: TYPE_FILTER_OPTIONS,
-    width: 140,
-  },
-  {
-    id: 'createdAt',
-    header: 'Created',
-    cell: (recipient) => new Date(recipient.createdAt).toLocaleDateString(),
-    sortable: true,
-    width: 120,
-  },
-  {
-    id: 'actions',
-    header: 'Actions',
-    cell: () => null,
-    hideable: false,
-    width: 1,
-  },
-]
-
 export default function RecipientsPage() {
+  const { t } = useTranslation()
   const { toast } = useToast()
   const {
     urlState,
@@ -160,80 +100,146 @@ export default function RecipientsPage() {
   const recipients = data?.items ?? []
   const meta = data?.meta
 
-  const columns = useMemo<ColumnDef<Recipient>[]>(
-    () => {
-      async function handleDelete(id: number) {
-        try {
-          await deleteRecipientMutation.mutateAsync(id)
-          toast({ title: 'Recipient deleted', color: 'success' })
-        } catch (err) {
-          toast({
-            title: 'Failed to delete recipient',
-            description: err instanceof Error ? err.message : 'Please try again.',
-            color: 'error',
-          })
-        }
+  const typeFilterOptions = [
+    { value: 'INDIVIDUAL', label: t('recipientsPage.type.individual') },
+    { value: 'ORGANIZATION', label: t('recipientsPage.type.organization') },
+  ]
+
+  const columns = useMemo<ColumnDef<Recipient>[]>(() => {
+    async function handleDelete(id: number) {
+      try {
+        await deleteRecipientMutation.mutateAsync(id)
+        toast({ title: t('recipientsPage.recipientDeleted'), color: 'success' })
+      } catch (err) {
+        toast({
+          title: t('recipientsPage.failedToDelete'),
+          description: err instanceof Error ? err.message : t('recipientsPage.tryAgain'),
+          color: 'error',
+        })
       }
+    }
 
-      return COLUMNS.map((column) =>
-        column.id === 'actions'
-          ? {
-              ...column,
-              cell: (recipient) => {
-                const isDeleting =
-                  deleteRecipientMutation.isPending &&
-                  deleteRecipientMutation.variables === recipient.id
+    const baseColumns: ColumnDef<Recipient>[] = [
+      {
+        id: 'name',
+        header: t('recipientsPage.columns.recipient'),
+        cell: (recipient) => (
+          <div className="flex flex-col">
+            <span className="font-medium text-neutral-900">
+              {formatRecipientName(recipient, t('recipientsPage.dash'))}
+            </span>
+            {recipient.email ? (
+              <span className="text-xs text-neutral-500">{recipient.email}</span>
+            ) : null}
+          </div>
+        ),
+        sortable: true,
+        filterable: true,
+        filterType: 'text',
+        minWidth: 220,
+      },
+      {
+        id: 'phone',
+        header: t('recipientsPage.columns.phone'),
+        cell: (recipient) => recipient.phone,
+        minWidth: 140,
+      },
+      {
+        id: 'address',
+        header: t('recipientsPage.columns.address'),
+        cell: (recipient) => (
+          <span className="text-sm text-neutral-700">{formatRecipientAddress(recipient, t)}</span>
+        ),
+        minWidth: 220,
+      },
+      {
+        id: 'type',
+        header: t('recipientsPage.columns.type'),
+        cell: (recipient) => (
+          <span className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-600">
+            {recipient.type === 'INDIVIDUAL'
+              ? t('recipientsPage.type.individual')
+              : t('recipientsPage.type.organization')}
+          </span>
+        ),
+        filterable: true,
+        filterType: 'select',
+        filterOptions: typeFilterOptions,
+        width: 140,
+      },
+      {
+        id: 'createdAt',
+        header: t('recipientsPage.columns.created'),
+        cell: (recipient) => new Date(recipient.createdAt).toLocaleDateString(),
+        sortable: true,
+        width: 120,
+      },
+      {
+        id: 'actions',
+        header: t('recipientsPage.columns.actions'),
+        cell: () => null,
+        hideable: false,
+        width: 1,
+      },
+    ]
 
-                return (
-                  <div className="flex w-fit items-center justify-end gap-1">
-                    <IconButton
-                      aria-label="Edit recipient"
-                      variant="ghost"
-                      color="warning"
-                      size="sm"
-                      title="Edit recipient"
-                      onClick={() => {
-                        setEditingRecipientId(recipient.id)
-                        setIsModalOpen(true)
-                      }}
-                    >
-                      <Pencil size={14} />
-                    </IconButton>
-                    <AlertDialog color="error">
-                      <AlertDialogTrigger asChild>
-                        <IconButton
-                          aria-label="Delete recipient"
-                          variant="ghost"
-                          color="error"
-                          size="sm"
-                          title="Delete recipient"
-                          disabled={isDeleting}
-                        >
-                          <Trash2 size={14} />
-                        </IconButton>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogTitle>Delete recipient?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This recipient will be permanently removed from your address book.
-                        </AlertDialogDescription>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(recipient.id)}>
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                )
-              },
-            }
-          : column,
-      )
-    },
-    [deleteRecipientMutation, setEditingRecipientId, toast],
-  )
+    return baseColumns.map((column) =>
+      column.id === 'actions'
+        ? {
+            ...column,
+            cell: (recipient) => {
+              const isDeleting =
+                deleteRecipientMutation.isPending &&
+                deleteRecipientMutation.variables === recipient.id
+
+              return (
+                <div className="flex w-fit items-center justify-end gap-1">
+                  <IconButton
+                    aria-label={t('recipientsPage.actions.edit')}
+                    variant="ghost"
+                    color="warning"
+                    size="sm"
+                    title={t('recipientsPage.actions.edit')}
+                    onClick={() => {
+                      setEditingRecipientId(recipient.id)
+                      setIsModalOpen(true)
+                    }}
+                  >
+                    <Pencil size={14} />
+                  </IconButton>
+                  <AlertDialog color="error">
+                    <AlertDialogTrigger asChild>
+                      <IconButton
+                        aria-label={t('recipientsPage.actions.delete')}
+                        variant="ghost"
+                        color="error"
+                        size="sm"
+                        title={t('recipientsPage.actions.delete')}
+                        disabled={isDeleting}
+                      >
+                        <Trash2 size={14} />
+                      </IconButton>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogTitle>{t('recipientsPage.deleteTitle')}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t('recipientsPage.deleteDescription')}
+                      </AlertDialogDescription>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDelete(recipient.id)}>
+                          {t('recipientsPage.actions.delete')}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              )
+            },
+          }
+        : column,
+    )
+  }, [deleteRecipientMutation, t, toast, typeFilterOptions])
 
   return (
     <main className="py-10">
@@ -252,21 +258,21 @@ export default function RecipientsPage() {
         columnVisibility={columnVisibility}
         onColumnVisibilityChange={setColumnVisibility}
         isLoading={isLoading}
-        error={error ? 'Failed to load recipients.' : null}
-        emptyMessage="No recipients yet"
+        error={error ? t('recipientsPage.failedToLoad') : null}
+        emptyMessage={t('recipientsPage.empty')}
         priorityFilterIds={['name', 'type']}
         onResetState={resetTableState}
-        title="Recipients"
-        description="Your address book for faster shipment creation."
+        title={t('recipientsPage.title')}
+        description={t('recipientsPage.description')}
         tableActions={
           <Button
-            color="green"
+            color="teal"
             onClick={() => {
               setEditingRecipientId(null)
               setIsModalOpen(true)
             }}
           >
-            Add recipient
+            {t('recipientsPage.addRecipient')}
           </Button>
         }
       />

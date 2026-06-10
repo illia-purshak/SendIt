@@ -44,7 +44,7 @@ export function Select({
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <Label htmlFor={id} className="text-sm font-medium text-gray-700">
+        <Label htmlFor={id} className="text-sm font-medium text-neutral-700">
           {label}
         </Label>
       )}
@@ -53,10 +53,10 @@ export function Select({
         <SelectPrimitive.Trigger
           id={id}
           className={[
-            "flex h-10 w-full cursor-pointer items-center justify-between text-sm outline-none transition-colors",
+            "flex h-9 w-full cursor-pointer items-center justify-between text-sm outline-none transition-colors",
             variant !== "ghost" ? "rounded-md px-3" : "px-0",
             "disabled:cursor-not-allowed disabled:opacity-50",
-            "data-placeholder:text-gray-400",
+            "data-placeholder:text-neutral-400",
             getSelectTriggerClasses(variant, color, !!error),
             className,
           ]

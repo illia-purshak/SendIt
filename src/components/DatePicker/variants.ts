@@ -9,7 +9,7 @@ const variantBase: Record<DatePickerVariant, string> = {
 }
 
 const colorFocus: Record<UiColor, string> = {
-  green:   'focus-visible:ring-green-700',
+  teal:    'focus-visible:ring-teal-700',
   neutral: 'focus-visible:ring-neutral-600',
   info:    'focus-visible:ring-info-600',
   warning: 'focus-visible:ring-warning-500',
@@ -18,7 +18,7 @@ const colorFocus: Record<UiColor, string> = {
 }
 
 const colorOutlineBorder: Record<UiColor, string> = {
-  green:   'border-green-700',
+  teal:    'border-teal-700',
   neutral: 'border-neutral-300',
   info:    'border-info-600',
   warning: 'border-warning-500',
@@ -32,7 +32,7 @@ export function getDatePickerTriggerClasses(variant: DatePickerVariant, color: U
 }
 
 export const calendarDayFocusRing: Record<UiColor, string> = {
-  green:   'focus-visible:ring-green-700',
+  teal:    'focus-visible:ring-teal-700',
   neutral: 'focus-visible:ring-neutral-600',
   info:    'focus-visible:ring-info-600',
   warning: 'focus-visible:ring-warning-500',
@@ -41,7 +41,7 @@ export const calendarDayFocusRing: Record<UiColor, string> = {
 }
 
 export const calendarSelectedDay: Record<UiColor, string> = {
-  green:   'bg-green-700 text-white hover:bg-green-500',
+  teal:    'bg-teal-700 text-white hover:bg-teal-800',
   neutral: 'bg-neutral-900 text-neutral-50 hover:bg-neutral-600',
   info:    'bg-info-600 text-white hover:bg-info-900',
   warning: 'bg-warning-500 text-white hover:bg-warning-900',
@@ -50,7 +50,7 @@ export const calendarSelectedDay: Record<UiColor, string> = {
 }
 
 export const calendarTodayText: Record<UiColor, string> = {
-  green:   'text-green-700',
+  teal:    'text-teal-700',
   neutral: 'text-neutral-900',
   info:    'text-info-600',
   warning: 'text-warning-500',

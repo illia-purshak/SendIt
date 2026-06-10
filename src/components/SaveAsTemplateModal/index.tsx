@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -6,7 +6,6 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { Button } from '@/components/Button'
 import { Input } from '@/components/Input'
 import { useCreateTemplateMutation } from '@/api/templates'
-import { usePostalConnectionsQuery } from '@/api/postal-connections'
 import { useToast } from '@/components/Toast/use-toast'
 import type { ShipmentType } from '@/types/template'
 
@@ -20,22 +19,32 @@ type ModalValues = z.infer<typeof schema>
 interface SaveAsTemplateModalProps {
   open: boolean
   onClose: () => void
+  operatorLabel: string
+  postalServiceId: number
   cargoCategory: string
   templateData: Record<string, unknown>
 }
 
 function shipmentTypeFromCargoCategory(cargoCategory: string): ShipmentType {
-  if (cargoCategory === 'CARGO') return 'CARGO'
-  if (cargoCategory === 'DOCUMENTS') return 'DOCUMENT'
-  if (cargoCategory === 'TIR_TRUCKS') return 'PALLET'
-  return 'UNKNOWN'
+  switch (cargoCategory) {
+    case 'documents': return 'DOCUMENT'
+    case 'pallet': return 'PALLET'
+    case 'parcel': return 'PACKAGE'
+    default: return 'UNKNOWN'
+  }
 }
 
-export function SaveAsTemplateModal({ open, onClose, cargoCategory, templateData }: SaveAsTemplateModalProps) {
+export function SaveAsTemplateModal({
+  open,
+  onClose,
+  operatorLabel,
+  postalServiceId,
+  cargoCategory,
+  templateData,
+}: SaveAsTemplateModalProps) {
   const { toast } = useToast()
   const [apiError, setApiError] = useState<string | null>(null)
   const { mutateAsync, isPending } = useCreateTemplateMutation()
-  const { data: connectionsData } = usePostalConnectionsQuery()
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<ModalValues>({
     resolver: zodResolver(schema),
@@ -45,14 +54,14 @@ export function SaveAsTemplateModal({ open, onClose, cargoCategory, templateData
   useEffect(() => {
     if (!open) return
     reset({
-      name: `Nova Poshta — ${new Intl.DateTimeFormat('en-GB', {
+      name: `${operatorLabel} - ${new Intl.DateTimeFormat('en-GB', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
       }).format(new Date())}`,
       description: '',
     })
-  }, [open, reset])
+  }, [open, operatorLabel, reset])
 
   function handleClose() {
     onClose()
@@ -61,7 +70,12 @@ export function SaveAsTemplateModal({ open, onClose, cargoCategory, templateData
 
   async function onSave(values: ModalValues) {
     setApiError(null)
-    const postalServiceId = connectionsData?.connections[0]?.postalService.id ?? 0
+
+    if (!postalServiceId) {
+      setApiError('No connected postal service available for this shipment')
+      return
+    }
+
     try {
       await mutateAsync({
         name: values.name,
@@ -107,7 +121,7 @@ export function SaveAsTemplateModal({ open, onClose, cargoCategory, templateData
               <label className="mb-1.5 block text-sm font-medium text-neutral-700">Name</label>
               <Input
                 {...register('name')}
-                placeholder="Nova Poshta — 17 May 2026"
+                placeholder={`${operatorLabel} - 17 May 2026`}
                 error={errors.name?.message}
               />
             </div>
@@ -120,7 +134,7 @@ export function SaveAsTemplateModal({ open, onClose, cargoCategory, templateData
                 {...register('description')}
                 rows={3}
                 placeholder="e.g. Standard parcel for domestic delivery"
-                className="w-full resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                className="w-full resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
               />
             </div>
 
@@ -130,7 +144,7 @@ export function SaveAsTemplateModal({ open, onClose, cargoCategory, templateData
               <Button type="button" variant="outline" color="neutral" onClick={handleClose} disabled={isPending}>
                 Cancel
               </Button>
-              <Button type="submit" color="green" disabled={isPending}>
+              <Button type="submit" color="teal" disabled={isPending}>
                 {isPending ? 'Saving…' : 'Save template'}
               </Button>
             </div>

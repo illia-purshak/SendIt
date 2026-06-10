@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Copy, Eye, Pencil, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { APP_ROUTES } from "@/constants/app-routes";
 import {
   AlertDialog,
@@ -19,9 +20,7 @@ import { useToast } from "@/components/Toast/use-toast";
 import { useDeleteDraftMutation } from "@/api/drafts";
 import { ConnectionInvalidError } from "@/api/postal-connections";
 import {
-  useDeleteNovaPoshtaShipmentMutation,
-  useDeleteUkrposhtaShipmentMutation,
-  useDeleteMeestShipmentMutation,
+  useDeleteShipmentMutation,
   useShipmentsQuery,
 } from "@/api/shipments";
 import type {
@@ -32,23 +31,12 @@ import type {
 import { DataTable, useDataTableUrlState } from "@/components/DataTable";
 import type { ColumnDef } from "@/components/DataTable";
 
-const STATUS_LABEL: Record<ShipmentStatus, string> = {
-  DRAFT: "Draft",
-  CREATED: "Created",
-  PREPARING: "Preparing",
-  IN_TRANSIT: "In transit",
-  DELIVERED: "Delivered",
-  CANCELLED: "Cancelled",
-  RETURNED: "Returned",
-  UNKNOWN: "Unknown",
-};
-
 const STATUS_CLASS: Record<ShipmentStatus, string> = {
   DRAFT: "bg-neutral-100 text-neutral-500",
   CREATED: "bg-blue-50 text-blue-700",
   PREPARING: "bg-yellow-100 text-yellow-800",
   IN_TRANSIT: "bg-blue-100 text-blue-800",
-  DELIVERED: "bg-green-100 text-green-800",
+  DELIVERED: "bg-teal-100 text-teal-800",
   CANCELLED: "bg-neutral-100 text-neutral-500",
   RETURNED: "bg-orange-100 text-orange-700",
   UNKNOWN: "bg-neutral-100 text-neutral-400",
@@ -56,11 +44,8 @@ const STATUS_CLASS: Record<ShipmentStatus, string> = {
 
 const PAGE_SIZE = 20;
 
-const ACTIONABLE_STATUSES = new Set<ShipmentStatus>(['DRAFT', 'CREATED', 'PREPARING']);
+const ACTIONABLE_STATUSES = new Set<ShipmentStatus>(["DRAFT", "CREATED", "PREPARING"]);
 
-const STATUS_FILTER_OPTIONS = Object.entries(STATUS_LABEL).map(
-  ([value, label]) => ({ value, label }),
-);
 const OPERATOR_FILTER_OPTIONS = [
   { value: "novapost", label: "Nova Poshta" },
   { value: "ukrposhta", label: "Ukrposhta" },
@@ -81,78 +66,8 @@ function parseDateParam(value: string | undefined): Date | undefined {
   return new Date(year, month - 1, day);
 }
 
-const COLUMNS: ColumnDef<ShipmentListItem>[] = [
-  {
-    id: "ttn",
-    header: "TTN / ID",
-    cell: (s) => (
-      <span className="font-mono text-xs text-neutral-700">
-        {s.ttn ?? (s.draftId != null ? `Draft #${s.draftId}` : "—")}
-      </span>
-    ),
-    filterable: true,
-    filterType: "text",
-    width: 160,
-  },
-  {
-    id: "operator",
-    header: "Operator",
-    cell: (s) => s.operatorName,
-    filterable: true,
-    filterType: "select",
-    filterOptions: OPERATOR_FILTER_OPTIONS,
-    width: 140,
-  },
-  {
-    id: "recipient",
-    header: "Recipient",
-    cell: (s) => s.recipientName ?? "—",
-    sortable: true,
-    filterable: true,
-    filterType: "text",
-  },
-  {
-    id: "status",
-    header: "Status",
-    cell: (s) => (
-      <span
-        className={[
-          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-          STATUS_CLASS[s.normalizedStatus],
-        ].join(" ")}
-      >
-        {STATUS_LABEL[s.normalizedStatus]}
-      </span>
-    ),
-    filterable: true,
-    filterType: "select",
-    filterOptions: STATUS_FILTER_OPTIONS,
-    width: 140,
-  },
-  {
-    id: "createdAt",
-    header: "Date",
-    cell: (s) => new Date(s.createdAt).toLocaleDateString(),
-    sortable: true,
-    width: 110,
-  },
-  {
-    id: "declaredValue",
-    header: "Value, ₴",
-    cell: (s) => (s.declaredValue != null ? s.declaredValue : "—"),
-    sortable: true,
-    width: 100,
-  },
-  {
-    id: "actions",
-    header: "Actions",
-    cell: () => null,
-    hideable: false,
-    width: 1,
-  },
-];
-
 export default function ShipmentsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const {
@@ -165,74 +80,132 @@ export default function ShipmentsPage() {
   } = useDataTableUrlState();
   const { page, sortState, filterState, columnVisibility } = urlState;
   const deleteDraftMutation = useDeleteDraftMutation();
-  const deleteShipmentMutation = useDeleteNovaPoshtaShipmentMutation();
-  const deleteUkrposhtaMutation = useDeleteUkrposhtaShipmentMutation();
-  const deleteMeestMutation = useDeleteMeestShipmentMutation();
+  const deleteShipmentMutation = useDeleteShipmentMutation();
 
   const createdFrom = parseDateParam(filterState["createdFrom"]);
   const createdTo = parseDateParam(filterState["createdTo"]);
 
-  async function handleDeleteNovaPoshtaShipment(ttn: string) {
+  const statusLabel: Record<ShipmentStatus, string> = {
+    DRAFT: t("shipmentsPage.status.draft"),
+    CREATED: t("shipmentsPage.status.created"),
+    PREPARING: t("shipmentsPage.status.preparing"),
+    IN_TRANSIT: t("shipmentsPage.status.inTransit"),
+    DELIVERED: t("shipmentsPage.status.delivered"),
+    CANCELLED: t("shipmentsPage.status.cancelled"),
+    RETURNED: t("shipmentsPage.status.returned"),
+    UNKNOWN: t("shipmentsPage.status.unknown"),
+  };
+
+  const statusFilterOptions = Object.entries(statusLabel).map(
+    ([value, label]) => ({ value, label }),
+  );
+
+  async function handleDeleteShipment(operator: string, ref: string) {
     try {
-      await deleteShipmentMutation.mutateAsync(ttn);
-      toast({ title: "Shipment deleted", color: "success" });
+      await deleteShipmentMutation.mutateAsync({ operator, ref });
+      toast({ title: t("shipmentsPage.shipmentDeleted"), color: "success" });
     } catch (err) {
       if (err instanceof ConnectionInvalidError) {
         toast({
-          title: "Nova Poshta connection invalid",
-          description: "Please reconnect your Nova Poshta account in Profile settings.",
+          title: t("shipmentsPage.connectionInvalidTitle"),
+          description: t("shipmentsPage.connectionInvalidDescription"),
           color: "error",
         });
       } else {
         toast({
-          title: "Failed to delete shipment",
-          description: err instanceof Error ? err.message : "Please try again.",
+          title: t("shipmentsPage.failedToDeleteShipment"),
+          description: err instanceof Error ? err.message : t("shipmentsPage.tryAgain"),
           color: "error",
         });
       }
     }
   }
 
-  async function handleDeleteUkrposhtaShipment(ttn: string) {
-    try {
-      await deleteUkrposhtaMutation.mutateAsync(ttn);
-      toast({ title: "Shipment deleted", color: "success" });
-    } catch (err) {
-      toast({
-        title: "Failed to delete shipment",
-        description: err instanceof Error ? err.message : "Please try again.",
-        color: "error",
-      });
-    }
-  }
-
-  async function handleDeleteMeestShipment(ttn: string) {
-    try {
-      await deleteMeestMutation.mutateAsync(ttn);
-      toast({ title: "Shipment deleted", color: "success" });
-    } catch (err) {
-      toast({
-        title: "Failed to delete shipment",
-        description: err instanceof Error ? err.message : "Please try again.",
-        color: "error",
-      });
-    }
-  }
-
   async function handleDeleteDraft(draftId: number) {
     try {
       await deleteDraftMutation.mutateAsync(draftId);
-      toast({ title: "Draft deleted", color: "success" });
+      toast({ title: t("shipmentsPage.draftDeleted"), color: "success" });
     } catch (err) {
       toast({
-        title: "Failed to delete draft",
-        description: err instanceof Error ? err.message : "Please try again.",
+        title: t("shipmentsPage.failedToDeleteDraft"),
+        description: err instanceof Error ? err.message : t("shipmentsPage.tryAgain"),
         color: "error",
       });
     }
   }
 
-  const columns: ColumnDef<ShipmentListItem>[] = COLUMNS.map((column) =>
+  const baseColumns: ColumnDef<ShipmentListItem>[] = [
+    {
+      id: "ttn",
+      header: t("shipmentsPage.columns.ttn"),
+      cell: (s) => (
+        <span className="font-mono text-xs text-neutral-700">
+          {s.ttn ?? (s.draftId != null ? t("shipmentsPage.draftNumber", { id: s.draftId }) : t("shipmentsPage.dash"))}
+        </span>
+      ),
+      filterable: true,
+      filterType: "text",
+      width: 160,
+    },
+    {
+      id: "operator",
+      header: t("shipmentsPage.columns.operator"),
+      cell: (s) => s.operatorName,
+      filterable: true,
+      filterType: "select",
+      filterOptions: OPERATOR_FILTER_OPTIONS,
+      width: 140,
+    },
+    {
+      id: "recipient",
+      header: t("shipmentsPage.columns.recipient"),
+      cell: (s) => s.recipientName ?? t("shipmentsPage.dash"),
+      sortable: true,
+      filterable: true,
+      filterType: "text",
+    },
+    {
+      id: "status",
+      header: t("shipmentsPage.columns.status"),
+      cell: (s) => (
+        <span
+          className={[
+            "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+            STATUS_CLASS[s.normalizedStatus],
+          ].join(" ")}
+        >
+          {statusLabel[s.normalizedStatus]}
+        </span>
+      ),
+      filterable: true,
+      filterType: "select",
+      filterOptions: statusFilterOptions,
+      width: 140,
+    },
+    {
+      id: "createdAt",
+      header: t("shipmentsPage.columns.date"),
+      cell: (s) => new Date(s.createdAt).toLocaleDateString(),
+      sortable: true,
+      width: 110,
+    },
+    {
+      id: "declaredValue",
+      header: t("shipmentsPage.columns.value"),
+      cell: (s) => (s.declaredValue != null ? s.declaredValue : t("shipmentsPage.dash")),
+      sortable: true,
+      width: 100,
+    },
+    {
+      id: "actions",
+      header: t("shipmentsPage.columns.actions"),
+      cell: () => null,
+      hideable: false,
+      width: 1,
+    },
+  ];
+
+  const columns: ColumnDef<ShipmentListItem>[] = baseColumns.map((column) =>
     column.id === "actions"
       ? {
           ...column,
@@ -274,25 +247,21 @@ export default function ShipmentsPage() {
               deleteDraftMutation.isPending &&
               deleteDraftMutation.variables === shipment.draftId;
             const isDeletingShipment =
-              (deleteShipmentMutation.isPending &&
-                deleteShipmentMutation.variables === shipment.ttn) ||
-              (deleteUkrposhtaMutation.isPending &&
-                deleteUkrposhtaMutation.variables === shipment.ttn) ||
-              (deleteMeestMutation.isPending &&
-                deleteMeestMutation.variables === shipment.ttn);
+              deleteShipmentMutation.isPending &&
+              deleteShipmentMutation.variables?.ref === shipment.ttn;
 
             return (
               <div className="flex w-fit items-center justify-end gap-1">
                 <IconButton
-                  aria-label="View shipment"
+                  aria-label={t("shipmentsPage.actions.view")}
                   variant="ghost"
                   color="info"
                   size="sm"
                   disabled={!canView}
                   title={
                     canView
-                      ? "Open shipment details"
-                      : "Details are not available for drafts"
+                      ? t("shipmentsPage.actions.openDetails")
+                      : t("shipmentsPage.actions.detailsUnavailable")
                   }
                   onClick={() => {
                     if (shipment.kind === "shipment" && shipment.ref) {
@@ -303,29 +272,33 @@ export default function ShipmentsPage() {
                   <Eye size={14} />
                 </IconButton>
                 <IconButton
-                  aria-label="Duplicate shipment"
+                  aria-label={t("shipmentsPage.actions.duplicate")}
                   variant="ghost"
                   color="success"
                   size="sm"
                   disabled={!canDuplicate}
-                  title={canDuplicate ? "Duplicate shipment" : "Cannot duplicate this shipment"}
+                  title={canDuplicate ? t("shipmentsPage.actions.duplicate") : t("shipmentsPage.actions.cannotDuplicate")}
                   onClick={() => {
                     if (!canDuplicate || !shipment.ttn) return;
                     navigate({
                       pathname: APP_ROUTES.newShipment,
-                      search: `?duplicate=${encodeURIComponent(shipment.ttn)}`,
+                      search: `?duplicate=${encodeURIComponent(shipment.ttn)}&operator=${encodeURIComponent(shipment.operator)}`,
+                    }, {
+                      state: {
+                        shipmentPrefillData: shipment,
+                      },
                     });
                   }}
                 >
                   <Copy size={14} />
                 </IconButton>
                 <IconButton
-                  aria-label="Edit shipment"
+                  aria-label={t("shipmentsPage.actions.edit")}
                   variant="ghost"
                   color="warning"
                   size="sm"
                   disabled={!canEdit}
-                  title={canEdit ? "Edit shipment" : "Cannot edit this shipment"}
+                  title={canEdit ? t("shipmentsPage.actions.edit") : t("shipmentsPage.actions.cannotEdit")}
                   onClick={() => {
                     if (!canEdit) return;
 
@@ -341,6 +314,10 @@ export default function ShipmentsPage() {
                       navigate({
                         pathname: APP_ROUTES.newShipment,
                         search: `?editTtn=${encodeURIComponent(shipment.ttn)}&operator=${encodeURIComponent(shipment.operator)}`,
+                      }, {
+                        state: {
+                          shipmentPrefillData: shipment,
+                        },
                       });
                     }
                   }}
@@ -351,130 +328,68 @@ export default function ShipmentsPage() {
                   <AlertDialog color="error">
                     <AlertDialogTrigger asChild>
                       <IconButton
-                        aria-label="Delete draft"
+                        aria-label={t("shipmentsPage.actions.deleteDraft")}
                         variant="ghost"
                         color="error"
                         size="sm"
                         disabled={isDeletingDraft}
-                        title={isDeletingDraft ? "Deleting draft" : "Delete draft"}
+                        title={isDeletingDraft ? t("shipmentsPage.actions.deletingDraft") : t("shipmentsPage.actions.deleteDraft")}
                       >
                         <Trash2 size={14} />
                       </IconButton>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
-                      <AlertDialogTitle>Delete draft?</AlertDialogTitle>
+                      <AlertDialogTitle>{t("shipmentsPage.deleteDraftTitle")}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This draft will be permanently removed. This action
-                        cannot be undone.
+                        {t("shipmentsPage.deleteDraftDescription")}
                       </AlertDialogDescription>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => handleDeleteDraft(shipment.draftId!)}
                         >
-                          Delete
+                          {t("shipmentsPage.actions.delete")}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-                ) : canDeleteNovaPost ? (
+                ) : (canDeleteNovaPost || canDeleteUkrposhta || canDeleteMeest) ? (
                   <AlertDialog color="error">
                     <AlertDialogTrigger asChild>
                       <IconButton
-                        aria-label="Delete shipment"
+                        aria-label={t("shipmentsPage.actions.deleteShipment")}
                         variant="ghost"
                         color="error"
                         size="sm"
                         disabled={isDeletingShipment}
-                        title={isDeletingShipment ? "Deleting shipment" : "Delete shipment"}
+                        title={isDeletingShipment ? t("shipmentsPage.actions.deletingShipment") : t("shipmentsPage.actions.deleteShipment")}
                       >
                         <Trash2 size={14} />
                       </IconButton>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
-                      <AlertDialogTitle>Delete shipment?</AlertDialogTitle>
+                      <AlertDialogTitle>{t("shipmentsPage.deleteShipmentTitle")}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will permanently delete the shipment from Nova
-                        Poshta. This action cannot be undone.
+                        {t("shipmentsPage.deleteShipmentDescription")}
                       </AlertDialogDescription>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => handleDeleteNovaPoshtaShipment(shipment.ttn!)}
+                          onClick={() => handleDeleteShipment(shipment.operator, shipment.ttn!)}
                         >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                ) : canDeleteUkrposhta ? (
-                  <AlertDialog color="error">
-                    <AlertDialogTrigger asChild>
-                      <IconButton
-                        aria-label="Delete shipment"
-                        variant="ghost"
-                        color="error"
-                        size="sm"
-                        disabled={isDeletingShipment}
-                        title={isDeletingShipment ? "Deleting shipment" : "Delete shipment"}
-                      >
-                        <Trash2 size={14} />
-                      </IconButton>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogTitle>Delete shipment?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently delete the shipment from
-                        Ukrposhta. This action cannot be undone.
-                      </AlertDialogDescription>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDeleteUkrposhtaShipment(shipment.ttn!)}
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                ) : canDeleteMeest ? (
-                  <AlertDialog color="error">
-                    <AlertDialogTrigger asChild>
-                      <IconButton
-                        aria-label="Delete shipment"
-                        variant="ghost"
-                        color="error"
-                        size="sm"
-                        disabled={isDeletingShipment}
-                        title={isDeletingShipment ? "Deleting shipment" : "Delete shipment"}
-                      >
-                        <Trash2 size={14} />
-                      </IconButton>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogTitle>Delete shipment?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently delete the shipment from Meest
-                        Express. This action cannot be undone.
-                      </AlertDialogDescription>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDeleteMeestShipment(shipment.ttn!)}
-                        >
-                          Delete
+                          {t("shipmentsPage.actions.delete")}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
                 ) : (
                   <IconButton
-                    aria-label="Delete shipment"
+                    aria-label={t("shipmentsPage.actions.deleteShipment")}
                     variant="ghost"
                     color="error"
                     size="sm"
                     disabled
-                    title="Delete is only available for drafts"
+                    title={t("shipmentsPage.actions.deleteOnlyDrafts")}
                   >
                     <Trash2 size={14} />
                   </IconButton>
@@ -533,14 +448,14 @@ export default function ShipmentsPage() {
         columnVisibility={columnVisibility}
         onColumnVisibilityChange={setColumnVisibility}
         isLoading={isLoading}
-        error={error ? "Failed to load shipments." : null}
-        emptyMessage="No shipments yet"
+        error={error ? t("shipmentsPage.failedToLoad") : null}
+        emptyMessage={t("shipmentsPage.empty")}
         priorityFilterIds={["ttn", "operator", "status", "recipient"]}
         extraFilterContent={
           <>
             <div className="flex min-w-44 flex-1 flex-col gap-1">
               <span className="text-xs font-medium text-neutral-500">
-                Created in SendIt from
+                {t("shipmentsPage.filters.createdFromLabel")}
               </span>
               <DatePicker
                 value={createdFrom}
@@ -550,13 +465,13 @@ export default function ShipmentsPage() {
                     createdFrom: date ? formatDateParam(date) : "",
                   })
                 }
-                placeholder="Start date"
+                placeholder={t("shipmentsPage.filters.startDate")}
                 className="h-8 rounded border border-neutral-200 px-2 text-xs"
               />
             </div>
             <div className="flex min-w-44 flex-1 flex-col gap-1">
               <span className="text-xs font-medium text-neutral-500">
-                Created in SendIt to
+                {t("shipmentsPage.filters.createdToLabel")}
               </span>
               <DatePicker
                 value={createdTo}
@@ -566,13 +481,13 @@ export default function ShipmentsPage() {
                     createdTo: date ? formatDateParam(date) : "",
                   })
                 }
-                placeholder="End date"
+                placeholder={t("shipmentsPage.filters.endDate")}
                 className="h-8 rounded border border-neutral-200 px-2 text-xs"
               />
             </div>
             <div className="flex min-w-44 flex-1 flex-col gap-1">
               <span className="text-xs font-medium text-neutral-500">
-                Value from
+                {t("shipmentsPage.filters.valueFromLabel")}
               </span>
               <Input
                 type="number"
@@ -585,13 +500,13 @@ export default function ShipmentsPage() {
                     valueFrom: event.target.value,
                   })
                 }
-                placeholder="Min value"
+                placeholder={t("shipmentsPage.filters.minValue")}
                 className="h-8 rounded border border-neutral-200 px-2 text-xs"
               />
             </div>
             <div className="flex min-w-44 flex-1 flex-col gap-1">
               <span className="text-xs font-medium text-neutral-500">
-                Value to
+                {t("shipmentsPage.filters.valueToLabel")}
               </span>
               <Input
                 type="number"
@@ -604,25 +519,24 @@ export default function ShipmentsPage() {
                     valueTo: event.target.value,
                   })
                 }
-                placeholder="Max value"
+                placeholder={t("shipmentsPage.filters.maxValue")}
                 className="h-8 rounded border border-neutral-200 px-2 text-xs"
               />
             </div>
             <div className="min-w-full text-xs text-neutral-500">
-              Value filters apply to the shipment declared value, not the
-              delivery fee.
+              {t("shipmentsPage.filters.valueHint")}
             </div>
           </>
         }
         onResetState={resetTableState}
-        title="Shipments"
-        description="Track and manage all your shipments."
+        title={t("shipmentsPage.title")}
+        description={t("shipmentsPage.description")}
         tableActions={
           <Button
-            color="green"
+            color="teal"
             onClick={() => navigate(APP_ROUTES.newShipment)}
           >
-            New shipment
+            {t("shipmentsPage.newShipment")}
           </Button>
         }
       />

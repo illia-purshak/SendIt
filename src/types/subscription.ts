@@ -20,8 +20,8 @@ export interface SubscriptionPlan {
   id: number
   name: string
   level: number
-  price: string
-  priceYearly: string | null
+  price: number
+  priceYearly: number | null
   maxOperators: number
   hasAnalytics: boolean
   hasTemplates: boolean
@@ -45,8 +45,10 @@ export interface UserSubscriptionBalance {
   position: number
   scheduledSwitchTo: number | null
   scheduledSwitchAt: string | null
-  customAmount: string | null
+  customAmount: number | null
   discountType: DiscountType | null
+  createdAt: string
+  updatedAt: string
   plan: SubscriptionPlan
 }
 
@@ -65,6 +67,29 @@ export interface PaymentCard {
   maskedNumber: string
   expiryMonth: number
   expiryYear: number
+}
+
+export interface AdminBillingRecord {
+  id: number
+  userId: number
+  planId: number
+  balanceId: number
+  periodType: SubscriptionPeriodType
+  amount: number
+  status: string
+  periodStart: string
+  periodEnd: string
+  paidAt: string | null
+  createdAt: string
+  plan: SubscriptionPlan
+}
+
+export interface AdminBillingHistoryResponse {
+  data: AdminBillingRecord[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
 }
 
 export interface OnboardingChecklist {

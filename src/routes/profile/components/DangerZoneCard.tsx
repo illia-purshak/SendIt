@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+import { useDeleteAccountMutation } from "@/api/auth";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,10 +12,10 @@ import {
 } from "@/components/AlertDialog";
 import { Button } from "@/components/Button";
 import { useToast } from "@/components/Toast/use-toast";
-import { useDeleteAccountMutation } from "@/api/auth";
 import { useAuth } from "@/hooks/useAuth";
 
 export function DangerZoneCard() {
+  const { t } = useTranslation();
   const { logout } = useAuth();
   const { mutateAsync: deleteAccount, isPending } = useDeleteAccountMutation();
   const { toast } = useToast();
@@ -24,9 +26,9 @@ export function DangerZoneCard() {
       logout();
     } catch (error) {
       toast({
-        title: "Failed to schedule deletion",
+        title: t("profile.deleteScheduleFailed"),
         description:
-          error instanceof Error ? error.message : "Something went wrong",
+          error instanceof Error ? error.message : t("profile.somethingWentWrong"),
         color: "error",
       });
     }
@@ -34,27 +36,29 @@ export function DangerZoneCard() {
 
   return (
     <div className="rounded-2xl border border-red-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-2 text-lg font-semibold text-red-700">Danger zone</h2>
+      <h2 className="mb-2 text-lg font-semibold text-red-700">
+        {t("profile.dangerZoneTitle")}
+      </h2>
       <p className="mb-4 text-sm text-neutral-600">
-        Deleting your account schedules its removal in 30 days. You can cancel
-        within that window by logging back in.
+        {t("profile.dangerZoneSubtitle")}
       </p>
       <AlertDialog color="error">
         <AlertDialogTrigger asChild>
           <Button variant="outline" color="error" disabled={isPending}>
-            {isPending ? "Deleting..." : "Delete account"}
+            {isPending ? t("profile.deleting") : t("profile.deleteAccount")}
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
-          <AlertDialogTitle>Delete account?</AlertDialogTitle>
+          <AlertDialogTitle>
+            {t("profile.deleteAccountConfirmTitle")}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            Your account will be scheduled for deletion in 30 days. You may
-            recover it by logging back in within that window.
+            {t("profile.deleteAccountConfirmDescription")}
           </AlertDialogDescription>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete}>
-              Delete account
+              {t("profile.deleteAccount")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

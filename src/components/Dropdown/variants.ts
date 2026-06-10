@@ -5,10 +5,10 @@ export type DropdownVariant = 'default' | 'outline' | 'ghost'
 type TriggerColorDef = Record<DropdownVariant, string>
 
 const triggerColorDefs: Record<UiColor, TriggerColorDef> = {
-  green: {
-    default: 'bg-green-700 text-white hover:bg-green-500 active:bg-green-950',
-    outline: 'border border-green-700 text-green-700 hover:bg-green-100 active:bg-green-200',
-    ghost:   'text-green-700 hover:bg-green-100 active:bg-green-200',
+  teal: {
+    default: 'bg-teal-700 text-white hover:bg-teal-800 active:bg-teal-900',
+    outline: 'border border-teal-700 text-teal-700 hover:bg-teal-50 active:bg-teal-100',
+    ghost:   'text-teal-700 hover:bg-teal-50 active:bg-teal-100',
   },
   neutral: {
     default: 'bg-neutral-900 text-neutral-50 hover:bg-neutral-600',
@@ -38,7 +38,7 @@ const triggerColorDefs: Record<UiColor, TriggerColorDef> = {
 }
 
 export const dropdownTriggerFocusRing: Record<UiColor, string> = {
-  green:   'focus-visible:ring-green-700',
+  teal:    'focus-visible:ring-teal-700',
   neutral: 'focus-visible:ring-neutral-600',
   info:    'focus-visible:ring-info-600',
   warning: 'focus-visible:ring-warning-500',
@@ -51,7 +51,7 @@ export function getDropdownTriggerClasses(variant: DropdownVariant, color: UiCol
 }
 
 export const dropdownItemHighlight: Record<UiColor, string> = {
-  green:   'data-[highlighted]:bg-green-100   data-[highlighted]:text-green-900',
+  teal:    'data-[highlighted]:bg-teal-50    data-[highlighted]:text-teal-900',
   neutral: 'data-[highlighted]:bg-neutral-100 data-[highlighted]:text-neutral-900',
   info:    'data-[highlighted]:bg-info-100    data-[highlighted]:text-info-900',
   warning: 'data-[highlighted]:bg-warning-100 data-[highlighted]:text-warning-900',

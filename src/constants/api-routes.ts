@@ -39,16 +39,20 @@ export const API_ROUTES = {
       verifySetup: '/admin/auth/2fa/verify-setup',
     },
   },
+  adminProfile: {
+    me: '/admin/profile',
+    settings: '/admin/profile/settings',
+  },
   novaPost: {
     requestKey: '/postal-connections/nova-post/request-key',
-    connect: '/postal-connections/nova-post/connect',
   },
   postalConnections: {
     list: '/postal-connections',
-    novaPoshta: '/postal-connections/nova-poshta',
-    novaPoshtataDivisions: '/postal-connections/nova-poshta/divisions',
-    ukrposhta: '/postal-connections/ukrposhta',
-    meest: '/postal-connections/meest',
+    create: '/postal-connections',
+    detail: (id: number) => `/postal-connections/${id}`,
+    update: (id: number) => `/postal-connections/${id}`,
+    delete: (id: number) => `/postal-connections/${id}`,
+    novaPostDivisions: '/postal-connections/nova-post/divisions',
   },
   subscriptions: {
     plans: '/subscriptions/plans',
@@ -65,6 +69,7 @@ export const API_ROUTES = {
   },
   analytics: {
     summary: '/analytics',
+    dashboard: '/analytics/dashboard',
   },
   notifications: {
     list: '/notifications',
@@ -81,15 +86,11 @@ export const API_ROUTES = {
     list: '/shipments',
     detailByTtn: (ttn: string) => `/shipments/${ttn}`,
     detail: (operator: string, ref: string) => `/shipments/${operator}/${ref}`,
-    novaPoshtaCreate: '/shipments/nova-poshta',
+    create: '/shipments',
+    delete: (operator: string, ref: string) => `/shipments/${operator}/${ref}`,
     novaPoshtaUpdate: (ttn: string) => `/shipments/nova-poshta/${ttn}`,
-    novaPoshtaDelete: (ttn: string) => `/shipments/nova-poshta/${ttn}`,
-    ukrposhtaCreate: '/shipments/ukrposhta',
     ukrposhtaUpdate: (ttn: string) => `/shipments/ukrposhta/${ttn}`,
-    ukrposhtaDelete: (ttn: string) => `/shipments/ukrposhta/${ttn}`,
-    meestCreate: '/shipments/meest',
     meestUpdate: (ttn: string) => `/shipments/meest/${ttn}`,
-    meestDelete: (ttn: string) => `/shipments/meest/${ttn}`,
   },
   drafts: {
     list: '/drafts',
@@ -116,10 +117,10 @@ export const API_ROUTES = {
   adminUsers: {
     list: '/admin/users',
     detail: (id: number) => `/admin/users/${id}`,
-  },
-  adminServices: {
-    list: '/admin/services',
-    detail: (id: number) => `/admin/services/${id}`,
+    subscription: (id: number) => `/admin/users/${id}/subscription`,
+    subscriptionHistory: (id: number) => `/admin/users/${id}/subscription/history`,
+    subscriptionBalance: (userId: number, balanceId: number) => `/admin/users/${userId}/subscription/${balanceId}`,
+    postalConnection: (userId: number, connectionId: number) => `/admin/users/${userId}/postal-connections/${connectionId}`,
   },
   adminAdmins: {
     list: '/admin/admins',

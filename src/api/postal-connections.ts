@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient, parseError } from '@/api/apiClient'
 import { API_ROUTES } from '@/constants/api-routes'
 import type { PostalConnectionsResponse, NovaPoshtataDivisionsResponse } from '@/types/postal-connections'
+import type { ApiErrorResponse } from '@/types/api-error'
 
 export class PostalConnectionError extends Error {
   readonly status: number
@@ -90,17 +91,18 @@ export function useConnectNovaPoshta() {
   return useMutation({
     mutationFn: async (body: { apiKey: string }) => {
       const res = await apiClient.post<{ connected: boolean }>(
-        API_ROUTES.novaPost.connect,
+        API_ROUTES.postalConnections.create,
         body,
-        { validateStatus: () => true },
+        { params: { operator: 'nova-post' }, validateStatus: () => true },
       )
       if (res.status >= 200 && res.status < 300) return res.data
 
-      const data = res.data as unknown as { code?: string; maxOperators?: number; currentPlan?: string; message?: string }
+      const data = res.data as unknown as ApiErrorResponse
       if (res.status === 403 && data?.code === 'OPERATOR_LIMIT_REACHED') {
+        const meta = data.details?.meta ?? {}
         throw new PostalOperatorLimitError(
-          data.maxOperators ?? 0,
-          data.currentPlan ?? '',
+          (meta.maxOperators as number) ?? 0,
+          (meta.currentPlan as string) ?? '',
           data.message ?? 'Upgrade your plan to connect more operators',
         )
       }
@@ -113,10 +115,10 @@ export function useConnectNovaPoshta() {
 export function useUpdateNovaPoshtaKey() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (body: { apiKey: string }) => {
+    mutationFn: async ({ id, apiKey }: { id: number; apiKey: string }) => {
       const res = await apiClient.put<PostalConnectionsResponse>(
-        API_ROUTES.postalConnections.novaPoshta,
-        body,
+        API_ROUTES.postalConnections.update(id),
+        { apiKey },
         { validateStatus: () => true },
       )
       if (res.status >= 200 && res.status < 300) return res.data
@@ -130,9 +132,9 @@ export function useUpdateNovaPoshtaKey() {
 export function useDisconnectNovaPoshta() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (id: number) => {
       const res = await apiClient.delete(
-        API_ROUTES.postalConnections.novaPoshta,
+        API_ROUTES.postalConnections.delete(id),
         { validateStatus: () => true },
       )
       if (res.status === 204) return
@@ -148,18 +150,19 @@ export function useConnectUkrposhta() {
   return useMutation({
     mutationFn: async (body: { apiKey: string }) => {
       const res = await apiClient.post(
-        API_ROUTES.postalConnections.ukrposhta,
+        API_ROUTES.postalConnections.create,
         body,
-        { validateStatus: () => true },
+        { params: { operator: 'ukrposhta' }, validateStatus: () => true },
       )
       if (res.status >= 200 && res.status < 300) return res.data
 
-      const data = res.data as unknown as { code?: string; maxOperators?: number; currentPlan?: string; message?: string }
+      const data = res.data as unknown as ApiErrorResponse
       if (res.status === 409 && data?.code === 'CONNECTION_ALREADY_EXISTS') throw new ConnectionAlreadyExistsError()
       if (res.status === 403 && data?.code === 'OPERATOR_LIMIT_REACHED') {
+        const meta = data.details?.meta ?? {}
         throw new PostalOperatorLimitError(
-          data.maxOperators ?? 0,
-          data.currentPlan ?? '',
+          (meta.maxOperators as number) ?? 0,
+          (meta.currentPlan as string) ?? '',
           data.message ?? 'Upgrade your plan to connect more operators',
         )
       }
@@ -172,10 +175,10 @@ export function useConnectUkrposhta() {
 export function useUpdateUkrposhtaKey() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (body: { apiKey: string }) => {
+    mutationFn: async ({ id, apiKey }: { id: number; apiKey: string }) => {
       const res = await apiClient.put(
-        API_ROUTES.postalConnections.ukrposhta,
-        body,
+        API_ROUTES.postalConnections.update(id),
+        { apiKey },
         { validateStatus: () => true },
       )
       if (res.status >= 200 && res.status < 300) return res.data
@@ -189,9 +192,9 @@ export function useUpdateUkrposhtaKey() {
 export function useDisconnectUkrposhta() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (id: number) => {
       const res = await apiClient.delete(
-        API_ROUTES.postalConnections.ukrposhta,
+        API_ROUTES.postalConnections.delete(id),
         { validateStatus: () => true },
       )
       if (res.status === 204) return
@@ -207,18 +210,19 @@ export function useConnectMeest() {
   return useMutation({
     mutationFn: async (body: { apiKey: string }) => {
       const res = await apiClient.post(
-        API_ROUTES.postalConnections.meest,
+        API_ROUTES.postalConnections.create,
         body,
-        { validateStatus: () => true },
+        { params: { operator: 'meest' }, validateStatus: () => true },
       )
       if (res.status >= 200 && res.status < 300) return res.data
 
-      const data = res.data as unknown as { code?: string; maxOperators?: number; currentPlan?: string; message?: string }
+      const data = res.data as unknown as ApiErrorResponse
       if (res.status === 409 && data?.code === 'CONNECTION_ALREADY_EXISTS') throw new ConnectionAlreadyExistsError()
       if (res.status === 403 && data?.code === 'OPERATOR_LIMIT_REACHED') {
+        const meta = data.details?.meta ?? {}
         throw new PostalOperatorLimitError(
-          data.maxOperators ?? 0,
-          data.currentPlan ?? '',
+          (meta.maxOperators as number) ?? 0,
+          (meta.currentPlan as string) ?? '',
           data.message ?? 'Upgrade your plan to connect more operators',
         )
       }
@@ -231,10 +235,10 @@ export function useConnectMeest() {
 export function useUpdateMeestKey() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (body: { apiKey: string }) => {
+    mutationFn: async ({ id, apiKey }: { id: number; apiKey: string }) => {
       const res = await apiClient.put(
-        API_ROUTES.postalConnections.meest,
-        body,
+        API_ROUTES.postalConnections.update(id),
+        { apiKey },
         { validateStatus: () => true },
       )
       if (res.status >= 200 && res.status < 300) return res.data
@@ -248,9 +252,9 @@ export function useUpdateMeestKey() {
 export function useDisconnectMeest() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (id: number) => {
       const res = await apiClient.delete(
-        API_ROUTES.postalConnections.meest,
+        API_ROUTES.postalConnections.delete(id),
         { validateStatus: () => true },
       )
       if (res.status === 204) return
@@ -274,7 +278,7 @@ export function useNovaPoshtataDivisionsQuery(params?: DivisionsQueryParams) {
     queryKey: ['nova-poshta-divisions', params] as const,
     queryFn: async () => {
       const res = await apiClient.get<NovaPoshtataDivisionsResponse>(
-        API_ROUTES.postalConnections.novaPoshtataDivisions,
+        API_ROUTES.postalConnections.novaPostDivisions,
         { params, validateStatus: () => true },
       )
       if (res.status >= 200 && res.status < 300) return res.data

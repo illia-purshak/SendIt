@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from 'react'
+﻿import type { KeyboardEvent } from 'react'
 import type { ColumnRenderInfo } from '../types'
 import { TableCell } from './TableCell'
 
@@ -20,7 +20,7 @@ export function TableRow({ row, columns, onRowClick }: TableRowProps) {
     <tr
       className={[
         'transition-colors hover:bg-neutral-50',
-        onRowClick && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-green-500',
+        onRowClick && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-500',
       ].filter(Boolean).join(' ')}
       onClick={onRowClick ? () => onRowClick(row) : undefined}
       tabIndex={onRowClick ? 0 : undefined}

@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient, fetcher, parseError, silentRefresh } from '@/api/apiClient'
+import { parseApiError, ApiValidationError } from '@/utils/parseApiError'
 import { authStore } from '@/store/authStore'
 import { API_ROUTES } from '@/constants/api-routes'
+import { syncLanguage } from '@/i18n/utils'
 import type {
   User,
   OrganizationProfile,
@@ -39,6 +41,7 @@ export async function fetchCurrentUser(): Promise<User | null> {
     authStore.clear()
     return null
   }
+  syncLanguage(res.data.settings?.language)
   return res.data
 }
 
@@ -235,8 +238,12 @@ export function useUpdateProfileMutation() {
   return useMutation({
     mutationFn: async (body: UpdateProfileBody) => {
       const res = await apiClient.put<FullProfileApiResponse>(API_ROUTES.profile.me, body)
-      if (res.status < 200 || res.status >= 300) throw new Error(parseError(res.data))
-      return res.data
+      if (res.status >= 200 && res.status < 300) return res.data
+      if (res.status === 400 || res.status === 422) {
+        const { message, validationDetails } = parseApiError(res.data)
+        throw new ApiValidationError(res.status, message, validationDetails)
+      }
+      throw new Error(parseError(res.data))
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY })
@@ -253,8 +260,12 @@ export function useUpdateSettingsMutation() {
         API_ROUTES.profile.settings,
         body,
       )
-      if (res.status < 200 || res.status >= 300) throw new Error(parseError(res.data))
-      return res.data
+      if (res.status >= 200 && res.status < 300) return res.data
+      if (res.status === 400 || res.status === 422) {
+        const { message, validationDetails } = parseApiError(res.data)
+        throw new ApiValidationError(res.status, message, validationDetails)
+      }
+      throw new Error(parseError(res.data))
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY })
@@ -266,8 +277,12 @@ export function useChangePasswordMutation() {
   return useMutation({
     mutationFn: async (body: { currentPassword: string; newPassword: string }) => {
       const res = await apiClient.put<{ message: string }>(API_ROUTES.auth.password, body)
-      if (res.status < 200 || res.status >= 300) throw new Error(parseError(res.data))
-      return res.data
+      if (res.status >= 200 && res.status < 300) return res.data
+      if (res.status === 400 || res.status === 422) {
+        const { message, validationDetails } = parseApiError(res.data)
+        throw new ApiValidationError(res.status, message, validationDetails)
+      }
+      throw new Error(parseError(res.data))
     },
   })
 }

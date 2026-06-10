@@ -1,39 +1,41 @@
-import { useState } from 'react'
-import { useForm, Controller } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useNavigate } from 'react-router-dom'
-import { Button } from '@/components/Button'
-import { Input } from '@/components/Input'
-import { useAuth } from '@/hooks/useAuth'
-import { APP_ROUTES } from '@/constants/app-routes'
-import { organizationProfileSchema } from '@/validation/auth'
-import type { z } from 'zod'
+import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { Button } from "@/components/Button";
+import { Input } from "@/components/Input";
+import { useAuth } from "@/hooks/useAuth";
+import { APP_ROUTES } from "@/constants/app-routes";
+import { organizationProfileSchema } from "@/validation/auth";
+import type { z } from "zod";
 
-type OrgValues = z.infer<typeof organizationProfileSchema>
+type OrgValues = z.infer<typeof organizationProfileSchema>;
 
 export default function CompleteProfilePage() {
-  const { completeOrganizationProfile } = useAuth()
-  const navigate = useNavigate()
-  const [error, setError] = useState<string | null>(null)
+  const { t } = useTranslation();
+  const { completeOrganizationProfile } = useAuth();
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
 
   const { control, handleSubmit, formState: { isSubmitting } } = useForm<OrgValues>({
     resolver: zodResolver(organizationProfileSchema),
     defaultValues: {
-      companyName: '',
-      edrpou: '',
-      legalAddress: '',
-      companyNameLat: '',
-      taxNumber: '',
-      contactPersonName: '',
+      companyName: "",
+      edrpou: "",
+      legalAddress: "",
+      companyNameLat: "",
+      taxNumber: "",
+      contactPersonName: "",
     },
-  })
+  });
 
   function handleCancel() {
-    navigate(APP_ROUTES.login)
+    navigate(APP_ROUTES.login);
   }
 
   async function onSubmit(values: OrgValues) {
-    setError(null)
+    setError(null);
     const err = await completeOrganizationProfile({
       companyName: values.companyName,
       edrpou: values.edrpou,
@@ -41,19 +43,19 @@ export default function CompleteProfilePage() {
       companyNameLat: values.companyNameLat || null,
       taxNumber: values.taxNumber || null,
       contactPersonName: values.contactPersonName || null,
-    })
+    });
     if (err) {
-      setError(err)
+      setError(err);
     } else {
-      navigate(APP_ROUTES.dashboard)
+      navigate(APP_ROUTES.dashboard);
     }
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-12">
       <div className="w-full max-w-lg rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
-        <h1 className="mb-1 text-2xl font-semibold text-neutral-900">Complete your profile</h1>
-        <p className="mb-6 text-sm text-neutral-500">Tell us about your organization.</p>
+        <h1 className="mb-1 text-2xl font-semibold text-neutral-900">{t("auth.completeProfile")}</h1>
+        <p className="mb-6 text-sm text-neutral-500">{t("auth.completeProfileDescription")}</p>
 
         {error && (
           <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
@@ -67,12 +69,12 @@ export default function CompleteProfilePage() {
                 name="companyName"
                 render={({ field, fieldState }) => (
                   <Input
-                    label="Company name"
+                    label={t("auth.companyName")}
                     placeholder="Acme Corp"
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
-                    color="green"
+                    color="teal"
                     error={fieldState.error?.message}
                     required
                   />
@@ -84,12 +86,12 @@ export default function CompleteProfilePage() {
               name="edrpou"
               render={({ field, fieldState }) => (
                 <Input
-                  label="EDRPOU"
+                  label={t("auth.edrpou")}
                   placeholder="12345678"
                   value={field.value}
                   onChange={field.onChange}
                   onBlur={field.onBlur}
-                  color="green"
+                  color="teal"
                   error={fieldState.error?.message}
                   required
                 />
@@ -100,12 +102,12 @@ export default function CompleteProfilePage() {
               name="taxNumber"
               render={({ field }) => (
                 <Input
-                  label="Tax number (optional)"
+                  label={t("auth.taxNumberOptional")}
                   placeholder="1234567890"
                   value={field.value}
                   onChange={field.onChange}
                   onBlur={field.onBlur}
-                  color="green"
+                  color="teal"
                 />
               )}
             />
@@ -115,12 +117,12 @@ export default function CompleteProfilePage() {
                 name="legalAddress"
                 render={({ field, fieldState }) => (
                   <Input
-                    label="Legal address"
+                    label={t("auth.legalAddress")}
                     placeholder="1 Main St, Kyiv, Ukraine"
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
-                    color="green"
+                    color="teal"
                     error={fieldState.error?.message}
                     required
                   />
@@ -133,12 +135,12 @@ export default function CompleteProfilePage() {
                 name="companyNameLat"
                 render={({ field }) => (
                   <Input
-                    label="Company name (Latin, optional)"
+                    label={t("auth.companyNameLatinOptional")}
                     placeholder="Acme Corp"
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
-                    color="green"
+                    color="teal"
                   />
                 )}
               />
@@ -149,12 +151,12 @@ export default function CompleteProfilePage() {
                 name="contactPersonName"
                 render={({ field }) => (
                   <Input
-                    label="Contact person name (optional)"
+                    label={t("auth.contactPersonOptional")}
                     placeholder="John Doe"
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
-                    color="green"
+                    color="teal"
                   />
                 )}
               />
@@ -170,14 +172,14 @@ export default function CompleteProfilePage() {
               disabled={isSubmitting}
               onClick={handleCancel}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
-            <Button type="submit" color="green" className="flex-1" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Save & continue'}
+            <Button type="submit" color="teal" className="flex-1" disabled={isSubmitting}>
+              {isSubmitting ? t("common.saving") : t("auth.saveAndContinue")}
             </Button>
           </div>
         </form>
       </div>
     </div>
-  )
+  );
 }

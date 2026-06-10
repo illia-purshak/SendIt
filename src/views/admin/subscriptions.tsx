@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+﻿import { useRef, useState } from "react";
 import { Eye, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -23,7 +23,7 @@ import {
 import type { SubscriptionStatus, DiscountType } from "@/types/subscription";
 
 const STATUS_CLASS: Record<SubscriptionStatus, string> = {
-  ACTIVE: "bg-green-100 text-green-800",
+  ACTIVE: "bg-teal-100 text-teal-800",
   PAUSED: "bg-yellow-100 text-yellow-800",
   QUEUED: "bg-blue-100 text-blue-800",
   EXPIRED: "bg-neutral-100 text-neutral-500",
@@ -66,7 +66,7 @@ function ChangePlanDialog({ row, open, onClose }: ChangePlanDialogProps) {
   }
 
   return (
-    <AlertDialog open={open} color="green">
+    <AlertDialog open={open} color="teal">
       <AlertDialogContent>
         <AlertDialogTitle>Change plan for {row.companyName}</AlertDialogTitle>
         <AlertDialogDescription>
@@ -76,7 +76,7 @@ function ChangePlanDialog({ row, open, onClose }: ChangePlanDialogProps) {
           <select
             value={selectedPlanId}
             onChange={(e) => setSelectedPlanId(Number(e.target.value))}
-            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-green-600"
+            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-teal-600"
           >
             {plansData?.map((plan) => (
               <option key={plan.id} value={plan.id}>
@@ -118,7 +118,7 @@ function ExtendDialog({ row, open, onClose }: ExtendDialogProps) {
   }
 
   return (
-    <AlertDialog open={open} color="green">
+    <AlertDialog open={open} color="teal">
       <AlertDialogContent>
         <AlertDialogTitle>Extend subscription</AlertDialogTitle>
         <AlertDialogDescription>
@@ -205,7 +205,7 @@ function DiscountDialog({ row, open, onClose }: DiscountDialogProps) {
   }
 
   return (
-    <AlertDialog open={open} color="green">
+    <AlertDialog open={open} color="teal">
       <AlertDialogContent>
         <AlertDialogTitle>Set individual discount</AlertDialogTitle>
         <AlertDialogDescription>
@@ -223,7 +223,7 @@ function DiscountDialog({ row, open, onClose }: DiscountDialogProps) {
               placeholder="e.g. 299"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
             />
           </div>
           <div>
@@ -242,7 +242,7 @@ function DiscountDialog({ row, open, onClose }: DiscountDialogProps) {
                     value={type}
                     checked={discountType === type}
                     onChange={() => setDiscountType(type)}
-                    className="accent-green-600"
+                    className="accent-teal-600"
                   />
                   {type === "ONE_TIME" ? "One-time" : "Permanent"}
                 </label>
@@ -370,7 +370,7 @@ export default function AdminSubscriptionsPage() {
             setSearch(e.target.value);
             handleFilterChange();
           }}
-          className="h-9 w-56 rounded-lg border border-neutral-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+          className="h-9 w-56 rounded-lg border border-neutral-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
         />
         <select
           value={plan}
@@ -378,7 +378,7 @@ export default function AdminSubscriptionsPage() {
             setPlan(e.target.value === "" ? "" : Number(e.target.value));
             handleFilterChange();
           }}
-          className="h-9 rounded-lg border border-neutral-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+          className="h-9 rounded-lg border border-neutral-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
         >
           <option value="">All plans</option>
           {PLAN_LEVELS.map((planOption) => (
@@ -393,7 +393,7 @@ export default function AdminSubscriptionsPage() {
             setStatus(e.target.value as SubscriptionStatus | "");
             handleFilterChange();
           }}
-          className="h-9 rounded-lg border border-neutral-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+          className="h-9 rounded-lg border border-neutral-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
         >
           <option value="">All statuses</option>
           {STATUSES.map((statusOption) => (

@@ -1,4 +1,4 @@
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/Accordion'
+﻿import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/Accordion'
 import { DatePicker } from '@/components/DatePicker'
 import {
   Dropdown, DropdownContent, DropdownItem, DropdownLabel,
@@ -33,27 +33,24 @@ import {
 type Swatch = { shade: string | number; hex: string }
 
 const PALETTE: Record<string, Swatch[]> = {
-  green: [
-    { shade: 950, hex: '#0D3D33' },
-    { shade: 700, hex: '#1F6F5F' },
-    { shade: 500, hex: '#2A9E88' },
-    { shade: 400, hex: '#3FE7A4' },
-    { shade: 200, hex: '#A8F5D8' },
-    { shade: 100, hex: '#D3FFED' },
+  teal: [
+    { shade: 950, hex: '#042f2e' },
+    { shade: 800, hex: '#115e59' },
+    { shade: 700, hex: '#0f766e' },
+    { shade: 500, hex: '#14b8a6' },
+    { shade: 300, hex: '#5eead4' },
+    { shade: 100, hex: '#ccfbf1' },
+    { shade: 50,  hex: '#f0fdfa' },
   ],
   neutral: [
     { shade: 900, hex: '#262626' },
+    { shade: 700, hex: '#404040' },
     { shade: 600, hex: '#5A5A5A' },
+    { shade: 400, hex: '#919191' },
     { shade: 300, hex: '#D6D6D6' },
+    { shade: 200, hex: '#E5E5E5' },
     { shade: 100, hex: '#F5F5F5' },
     { shade: 50,  hex: '#FFFFFF' },
-  ],
-  muted: [
-    { shade: 950,    hex: '#1A1A2E' },
-    { shade: 900,    hex: '#24243E' },
-    { shade: 800,    hex: '#3D2B4F' },
-    { shade: 'blue', hex: '#7EA3CC' },
-    { shade: 'pink', hex: '#FF5E76' },
   ],
   info: [
     { shade: 900, hex: '#0D3A6B' },
@@ -74,10 +71,10 @@ const PALETTE: Record<string, Swatch[]> = {
     { shade: 100, hex: '#FDECEA' },
   ],
   success: [
-    { shade: 900, hex: '#0D3D33' },
-    { shade: 600, hex: '#1F6F5F' },
-    { shade: 400, hex: '#3FE7A4' },
-    { shade: 100, hex: '#D3FFED' },
+    { shade: 900, hex: '#134e4a' },
+    { shade: 600, hex: '#0f766e' },
+    { shade: 400, hex: '#2dd4bf' },
+    { shade: 100, hex: '#ccfbf1' },
   ],
 }
 
@@ -163,8 +160,8 @@ function Sidebar() {
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
-    <section id={id} className="w-max rounded-xl border border-gray-200 bg-white p-8">
-      <h2 className="mb-6 text-lg font-semibold text-gray-900">{title}</h2>
+    <section id={id} className="w-max rounded-xl border border-neutral-200 bg-white p-8">
+      <h2 className="mb-6 text-lg font-semibold text-neutral-900">{title}</h2>
       {children}
     </section>
   )
@@ -172,7 +169,7 @@ function Section({ id, title, children }: { id: string; title: string; children:
 
 function VariantLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-3 text-xs font-medium tracking-widest text-gray-400 uppercase">{children}</p>
+    <p className="mb-3 text-xs font-medium tracking-widest text-neutral-400 uppercase">{children}</p>
   )
 }
 
@@ -215,7 +212,7 @@ function Typography() {
           <span className="text-base text-neutral-900">Primary text — neutral-900</span>
           <span className="text-base text-neutral-600">Secondary text — neutral-600</span>
           <span className="text-base text-neutral-300">Disabled text — neutral-300</span>
-          <span className="text-base text-green-700">Accent text — green-700</span>
+          <span className="text-base text-teal-700">Accent text — teal-700</span>
           <span className="text-base text-error-600">Error text — error-600</span>
         </div>
       </div>
@@ -266,7 +263,7 @@ function DatePickerSection() {
           ))}
         </div>
       </div>
-      <div className="mb-6 border-t border-gray-100 pt-6">
+      <div className="mb-6 border-t border-neutral-100 pt-6">
         <VariantLabel>Variants</VariantLabel>
         <div className="flex w-64 flex-col gap-3">
           {(['default', 'outline', 'ghost'] as const).map(variant => (
@@ -274,7 +271,7 @@ function DatePickerSection() {
           ))}
         </div>
       </div>
-      <div className="border-t border-gray-100 pt-6">
+      <div className="border-t border-neutral-100 pt-6">
         <VariantLabel>States</VariantLabel>
         <div className="flex w-64 flex-col gap-3">
           <DatePicker value={new Date()} placeholder="With value" />
@@ -289,12 +286,12 @@ export function UiKitPage() {
   const { toast } = useToast()
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-neutral-50">
       <Sidebar />
 
       <div className="flex-1 overflow-x-auto">
       <div className="min-w-max px-10 py-12">
-      <h1 className="mb-10 text-3xl font-bold text-gray-900">UI Kit</h1>
+      <h1 className="mb-10 text-3xl font-bold text-neutral-900">UI Kit</h1>
 
       <div className="flex flex-row items-start gap-6">
 
@@ -309,7 +306,7 @@ export function UiKitPage() {
               </div>
             </div>
           ))}
-          <div className="mt-6 border-t border-gray-100 pt-6">
+          <div className="mt-6 border-t border-neutral-100 pt-6">
             <VariantLabel>Helper colors</VariantLabel>
             <div className="flex flex-col gap-3">
               {BUTTON_VARIANTS.map(variant => (
@@ -321,7 +318,7 @@ export function UiKitPage() {
               ))}
             </div>
           </div>
-          <div className="mt-6 border-t border-gray-100 pt-6">
+          <div className="mt-6 border-t border-neutral-100 pt-6">
             <VariantLabel>Sizes</VariantLabel>
             <div className="flex items-center gap-2">
               <Button size="sm">Small</Button>
@@ -369,7 +366,7 @@ export function UiKitPage() {
               </div>
             </div>
           ))}
-          <div className="mt-6 border-t border-gray-100 pt-6">
+          <div className="mt-6 border-t border-neutral-100 pt-6">
             <VariantLabel>States</VariantLabel>
             <div className="flex flex-col gap-3">
               <Input label="With label" placeholder="Enter value" />
@@ -414,7 +411,7 @@ export function UiKitPage() {
               </div>
             </div>
           ))}
-          <div className="mt-6 border-t border-gray-100 pt-6">
+          <div className="mt-6 border-t border-neutral-100 pt-6">
             <VariantLabel>Sizes</VariantLabel>
             <div className="flex items-center gap-2">
               {ICON_BUTTON_SIZES.map(size => (
@@ -490,7 +487,7 @@ export function UiKitPage() {
               ))}
             </div>
           </div>
-          <div className="mb-6 border-t border-gray-100 pt-6">
+          <div className="mb-6 border-t border-neutral-100 pt-6">
             <VariantLabel>Sizes</VariantLabel>
             <div className="flex items-center gap-6">
               <Checkbox size="sm" label="Small" defaultChecked />
@@ -543,7 +540,7 @@ export function UiKitPage() {
               ))}
             </div>
           </div>
-          <div className="mb-6 border-t border-gray-100 pt-6">
+          <div className="mb-6 border-t border-neutral-100 pt-6">
             <VariantLabel>Sizes</VariantLabel>
             <div className="flex flex-col gap-3">
               <Switch size="sm" label="Small" defaultChecked />
@@ -590,7 +587,7 @@ export function UiKitPage() {
               </div>
             </div>
           ))}
-          <div className="mt-6 border-t border-gray-100 pt-6">
+          <div className="mt-6 border-t border-neutral-100 pt-6">
             <VariantLabel>Sizes</VariantLabel>
             <div className="flex items-center gap-2">
               <Toggle size="sm">Small</Toggle>
@@ -626,7 +623,7 @@ export function UiKitPage() {
               </div>
             </div>
           ))}
-          <div className="mt-6 border-t border-gray-100 pt-6">
+          <div className="mt-6 border-t border-neutral-100 pt-6">
             <VariantLabel>Colors</VariantLabel>
             <div className="flex flex-col gap-3">
               {uiColors.map((color: UiColor) => (
@@ -660,7 +657,7 @@ export function UiKitPage() {
               </Accordion>
             </div>
           ))}
-          <div className="border-t border-gray-100 pt-6">
+          <div className="border-t border-neutral-100 pt-6">
             <VariantLabel>Colors</VariantLabel>
             <div className="flex flex-col gap-4">
               {uiColors.map((color: UiColor) => (
@@ -769,7 +766,7 @@ export function UiKitPage() {
               ))}
             </div>
           </div>
-          <div className="mb-6 border-t border-gray-100 pt-6">
+          <div className="mb-6 border-t border-neutral-100 pt-6">
             <VariantLabel>Variants</VariantLabel>
             <div className="flex items-center gap-2">
               {(['default', 'outline', 'ghost'] as const).map(variant => (
@@ -785,7 +782,7 @@ export function UiKitPage() {
               ))}
             </div>
           </div>
-          <div className="mb-6 border-t border-gray-100 pt-6">
+          <div className="mb-6 border-t border-neutral-100 pt-6">
             <VariantLabel>With label &amp; icons</VariantLabel>
             <Dropdown>
               <DropdownTrigger>Options</DropdownTrigger>
@@ -800,7 +797,7 @@ export function UiKitPage() {
               </DropdownContent>
             </Dropdown>
           </div>
-          <div className="border-t border-gray-100 pt-6">
+          <div className="border-t border-neutral-100 pt-6">
             <VariantLabel>Disabled trigger</VariantLabel>
             <Dropdown>
               <DropdownTrigger disabled>Disabled</DropdownTrigger>

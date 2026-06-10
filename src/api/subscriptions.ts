@@ -10,6 +10,7 @@ import type {
   SubscriptionPeriodType,
   UserSubscriptionBalance,
   DiscountType,
+  AdminBillingHistoryResponse,
 } from '@/types/subscription'
 
 export class SubscriptionError extends Error {
@@ -127,7 +128,7 @@ export interface AdminSubscriptionRow {
   periodEnd: string
   autoRenew: boolean
   position: number
-  customAmount: string | null
+  customAmount: number | null
   discountType: DiscountType | null
 }
 
@@ -159,6 +160,8 @@ export type AdminSubscriptionAction =
   | { action: 'extend'; days: number }
   | { action: 'cancel' }
   | { action: 'setDiscount'; amount: number; discountType: DiscountType }
+  | { action: 'suspend' }
+  | { action: 'reactivate' }
 
 export function useAdminUpdateSubscriptionMutation() {
   const qc = useQueryClient()
@@ -170,6 +173,53 @@ export function useAdminUpdateSubscriptionMutation() {
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'subscriptions'] }),
+  })
+}
+
+export function useAdminUserSubscriptionQuery(userId: number) {
+  return useQuery<UserSubscriptionBalance[]>({
+    queryKey: ['admin', 'users', userId, 'subscription'],
+    queryFn: async () => {
+      const res = await adminApiClient.get<UserSubscriptionBalance[]>(API_ROUTES.adminUsers.subscription(userId))
+      if (res.status < 200 || res.status >= 300) {
+        throw new SubscriptionError(res.status, parseAdminError(res.data))
+      }
+      return res.data
+    },
+    enabled: Boolean(userId),
+  })
+}
+
+export function useAdminUserSubscriptionHistoryQuery(userId: number, params: { page: number; limit: number }) {
+  return useQuery<AdminBillingHistoryResponse>({
+    queryKey: ['admin', 'users', userId, 'subscription', 'history', params],
+    queryFn: async () => {
+      const res = await adminApiClient.get<AdminBillingHistoryResponse>(API_ROUTES.adminUsers.subscriptionHistory(userId), {
+        params: { page: params.page, limit: params.limit },
+      })
+      if (res.status < 200 || res.status >= 300) {
+        throw new SubscriptionError(res.status, parseAdminError(res.data))
+      }
+      return res.data
+    },
+    enabled: Boolean(userId),
+  })
+}
+
+export function useAdminUserSubscriptionActionMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, balanceId, ...body }: AdminSubscriptionAction & { userId: number; balanceId: number }) => {
+      const res = await adminApiClient.put(API_ROUTES.adminUsers.subscriptionBalance(userId, balanceId), body)
+      if (res.status < 200 || res.status >= 300) {
+        throw new SubscriptionError(res.status, parseAdminError(res.data))
+      }
+    },
+    onSuccess: (_data, { userId }) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'users', userId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'users', userId, 'subscription'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'users', userId, 'subscription', 'history'] })
+    },
   })
 }
 

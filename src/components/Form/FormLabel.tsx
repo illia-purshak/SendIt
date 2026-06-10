@@ -16,7 +16,7 @@ export const FormLabel = forwardRef<ComponentRef<typeof Label>, FormLabelProps>(
         htmlFor={formItemId}
         className={[
           "text-sm font-medium",
-          error ? "text-red-600" : "text-gray-700",
+          error ? "text-error-600" : "text-neutral-700",
           className,
         ]
           .filter(Boolean)
@@ -24,7 +24,7 @@ export const FormLabel = forwardRef<ComponentRef<typeof Label>, FormLabelProps>(
         {...props}
       >
         {children}
-        {required && <span className="ml-0.5 text-red-500">*</span>}
+        {required && <span className="ml-0.5 text-error-600">*</span>}
       </Label>
     );
   },

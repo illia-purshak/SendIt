@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 import {
   useCreateSupportTicketMutation,
   useMarkSupportTicketReadMutation,
@@ -18,8 +18,13 @@ import {
 } from "@/components/AlertDialog";
 import { Button } from "@/components/Button";
 import { Spinner } from "@/components/Loader/Spinner";
+import { useAuth } from "@/hooks/useAuth";
 import { toastStore } from "@/store/toastStore";
-import type { SupportTicketCategory, SupportTicketListItem, SupportTicketTab } from "@/types/support";
+import type {
+  SupportTicketCategory,
+  SupportTicketListItem,
+  SupportTicketTab,
+} from "@/types/support";
 import {
   formatRelativeTime,
   formatSupportTimestamp,
@@ -33,8 +38,8 @@ import {
   getTicketPreview,
   getTicketUnreadCount,
   isAdminSupportMessage,
-  isSystemSupportMessage,
   isSupportTicketActive,
+  isSystemSupportMessage,
 } from "@/views/support/support-meta";
 
 const CATEGORY_OPTIONS: SupportTicketCategory[] = [
@@ -50,6 +55,7 @@ function sortMostRecentFirst(a: SupportTicketListItem, b: SupportTicketListItem)
 }
 
 export default function SupportPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [tab, setTab] = useState<SupportTicketTab>("active");
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -71,7 +77,9 @@ export default function SupportPage() {
   const tickets = useMemo(() => {
     const source = [...(data?.items ?? [])].sort(sortMostRecentFirst);
     if (tab === "all") return source;
-    if (tab === "closed") return source.filter((ticket) => ticket.status === "CLOSED");
+    if (tab === "closed") {
+      return source.filter((ticket) => ticket.status === "CLOSED");
+    }
     return source.filter((ticket) => isSupportTicketActive(ticket.status));
   }, [data?.items, tab]);
 
@@ -84,7 +92,9 @@ export default function SupportPage() {
 
   const activeId = useMemo(() => {
     if (tickets.length === 0) return null;
-    if (selectedId !== null && tickets.some((t) => t.id === selectedId)) return selectedId;
+    if (selectedId !== null && tickets.some((ticket) => ticket.id === selectedId)) {
+      return selectedId;
+    }
     return tickets[0]?.id ?? null;
   }, [selectedId, tickets]);
 
@@ -105,15 +115,19 @@ export default function SupportPage() {
       await postMessage.mutateAsync({ ticketId: activeId, body: newMessage.trim() });
       setNewMessage("");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to send message";
-      toastStore.toast({ title: "Error", description: message, color: "error" });
+      const message = err instanceof Error ? err.message : t("support.failedToSendMessage");
+      toastStore.toast({
+        title: t("common.error"),
+        description: message,
+        color: "error",
+      });
     }
   }
 
   async function handleCreateTicket() {
     if (!subject.trim() || !draftMessage.trim()) {
       toastStore.toast({
-        title: "Fill in all required fields",
+        title: t("support.fillRequired"),
         color: "warning",
       });
       return;
@@ -134,48 +148,53 @@ export default function SupportPage() {
       const nextId = (result as { id?: number } | undefined)?.id;
       if (typeof nextId === "number") setSelectedId(nextId);
 
-      toastStore.toast({ title: "Ticket created", color: "success" });
+      toastStore.toast({ title: t("support.ticketCreated"), color: "success" });
     } catch (err) {
       toastStore.toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to create ticket",
+        title: t("common.error"),
+        description:
+          err instanceof Error ? err.message : t("support.failedToCreateTicket"),
         color: "error",
       });
     }
   }
 
   const isTicketClosed = ticketDetail?.status === "CLOSED";
-  const companyName = user?.profile?.companyName || user?.email || "You";
+  const companyName = user?.profile?.companyName || user?.email || t("support.you");
 
   return (
     <main className="py-10">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-neutral-900">Support</h1>
-        <p className="mt-1 text-sm text-neutral-500">Contact our team and track every reply in one place.</p>
+        <h1 className="text-2xl font-semibold text-neutral-900">{t("support.title")}</h1>
+        <p className="mt-1 text-sm text-neutral-500">{t("support.subtitle")}</p>
       </div>
 
       <AlertDialog open={newTicketOpen} onOpenChange={setNewTicketOpen}>
         <AlertDialogContent>
-          <AlertDialogTitle>New ticket</AlertDialogTitle>
+          <AlertDialogTitle>{t("support.newTicketTitle")}</AlertDialogTitle>
           <AlertDialogDescription>
-            Start a new conversation with the SendIt support team.
+            {t("support.newTicketDescription")}
           </AlertDialogDescription>
           <div className="mt-4 flex flex-col gap-3">
             <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-neutral-500">Subject *</span>
+              <span className="text-xs font-medium text-neutral-500">
+                {t("support.subjectLabel")}
+              </span>
               <input
                 type="text"
                 value={subject}
                 onChange={(event) => setSubject(event.target.value)}
-                className="rounded-xl border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                className="rounded-xl border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-neutral-500">Category *</span>
+              <span className="text-xs font-medium text-neutral-500">
+                {t("support.categoryLabel")}
+              </span>
               <select
                 value={category}
                 onChange={(event) => setCategory(event.target.value as SupportTicketCategory)}
-                className="rounded-xl border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                className="rounded-xl border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
               >
                 {CATEGORY_OPTIONS.map((option) => (
                   <option key={option} value={option}>
@@ -185,19 +204,23 @@ export default function SupportPage() {
               </select>
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-neutral-500">Message *</span>
+              <span className="text-xs font-medium text-neutral-500">
+                {t("support.messageLabel")}
+              </span>
               <textarea
                 rows={5}
                 value={draftMessage}
                 onChange={(event) => setDraftMessage(event.target.value)}
-                className="rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                className="rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
               />
             </label>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setNewTicketOpen(false)}>Cancel</AlertDialogCancel>
-            <Button color="green" disabled={createTicket.isPending} onClick={handleCreateTicket}>
-              {createTicket.isPending ? "Submitting..." : "Submit"}
+            <AlertDialogCancel onClick={() => setNewTicketOpen(false)}>
+              {t("common.cancel")}
+            </AlertDialogCancel>
+            <Button color="teal" disabled={createTicket.isPending} onClick={handleCreateTicket}>
+              {createTicket.isPending ? t("support.submitting") : t("support.submit")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -210,7 +233,9 @@ export default function SupportPage() {
       )}
 
       {!isLoading && error && (
-        <p className="py-10 text-center text-sm text-red-500">Failed to load support tickets.</p>
+        <p className="py-10 text-center text-sm text-red-500">
+          {t("support.failedToLoadTickets")}
+        </p>
       )}
 
       {!isLoading && !error && (
@@ -220,17 +245,17 @@ export default function SupportPage() {
               <div className="mb-3 flex items-center justify-between gap-3">
                 <Button
                   size="sm"
-                  color="green"
+                  color="teal"
                   disabled={activeOpenTickets >= 3}
                   onClick={() => setNewTicketOpen(true)}
                 >
                   <Plus size={14} className="mr-1" />
-                  New ticket
+                  {t("support.newTicket")}
                 </Button>
               </div>
               {activeOpenTickets >= 3 && (
                 <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                  You have reached the maximum of 3 open tickets.
+                  {t("support.maxOpenTickets")}
                 </p>
               )}
               <div className="flex rounded-xl border border-neutral-200 bg-neutral-50 p-1">
@@ -246,7 +271,11 @@ export default function SupportPage() {
                         : "text-neutral-500 hover:text-neutral-900",
                     ].join(" ")}
                   >
-                    {nextTab === "active" ? "Active" : nextTab === "closed" ? "Closed" : "All"}
+                    {nextTab === "active"
+                      ? t("support.tabActive")
+                      : nextTab === "closed"
+                        ? t("support.tabClosed")
+                        : t("support.tabAll")}
                   </button>
                 ))}
               </div>
@@ -263,7 +292,7 @@ export default function SupportPage() {
                       onClick={() => setSelectedId(ticket.id)}
                       className={[
                         "w-full border-b border-neutral-100 px-4 py-3 text-left transition-colors hover:bg-neutral-50",
-                        activeId === ticket.id ? "bg-green-50" : "",
+                        activeId === ticket.id ? "bg-teal-50" : "",
                       ].join(" ")}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -288,19 +317,21 @@ export default function SupportPage() {
                           {getSupportStatusLabel(ticket.status)}
                         </span>
                         {unreadCount > 0 && (
-                          <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-green-700 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                          <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-teal-700 px-1.5 py-0.5 text-[11px] font-semibold text-white">
                             {unreadCount}
                           </span>
                         )}
                       </div>
-                      <p className="mt-2 truncate text-sm text-neutral-500">{preview || "No messages yet."}</p>
+                      <p className="mt-2 truncate text-sm text-neutral-500">
+                        {preview || t("support.noMessagesYet")}
+                      </p>
                     </button>
                   </li>
                 );
               })}
               {tickets.length === 0 && (
                 <li className="px-4 py-12 text-center text-sm text-neutral-400">
-                  No tickets in this tab.
+                  {t("support.noTicketsInTab")}
                 </li>
               )}
             </ul>
@@ -309,7 +340,7 @@ export default function SupportPage() {
           <section className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
             {activeId === null ? (
               <div className="flex flex-1 items-center justify-center text-sm text-neutral-400">
-                Select a ticket
+                {t("support.selectTicket")}
               </div>
             ) : detailLoading ? (
               <div className="flex flex-1 items-center justify-center">
@@ -332,7 +363,9 @@ export default function SupportPage() {
                   </div>
                   <p className="font-semibold text-neutral-900">{ticketDetail.subject}</p>
                   <p className="mt-1 text-xs text-neutral-400">
-                    Updated {formatSupportTimestamp(ticketDetail.updatedAt)}
+                    {t("support.updated", {
+                      value: formatSupportTimestamp(ticketDetail.updatedAt),
+                    })}
                   </p>
                 </div>
 
@@ -370,10 +403,10 @@ export default function SupportPage() {
 
                       return (
                         <div key={message.id} className="flex justify-end">
-                          <div className="max-w-lg rounded-2xl bg-green-600 px-4 py-3 text-sm text-white">
-                            <p className="mb-1 text-xs font-semibold text-green-100">{companyName}</p>
+                          <div className="max-w-lg rounded-2xl bg-teal-600 px-4 py-3 text-sm text-white">
+                            <p className="mb-1 text-xs font-semibold text-teal-100">{companyName}</p>
                             <p>{message.body}</p>
-                            <p className="mt-2 text-xs text-green-200">
+                            <p className="mt-2 text-xs text-teal-200">
                               {formatSupportTimestamp(message.createdAt)}
                             </p>
                           </div>
@@ -385,7 +418,7 @@ export default function SupportPage() {
                 <div className="border-t border-neutral-100 p-4">
                   {isTicketClosed && (
                     <div className="mb-3 rounded-xl bg-amber-50 px-4 py-3 text-center text-xs text-amber-800">
-                      This ticket is closed. Send a new message to reopen it.
+                      {t("support.ticketClosedBanner")}
                     </div>
                   )}
                   <div className="flex gap-2">
@@ -394,11 +427,19 @@ export default function SupportPage() {
                       value={newMessage}
                       onChange={(event) => setNewMessage(event.target.value)}
                       onKeyDown={(event) => event.key === "Enter" && handleSend()}
-                      placeholder={isTicketClosed ? "Send a message to reopen this ticket..." : "Reply to support..."}
-                      className="flex-1 rounded-xl border border-neutral-200 px-4 py-2 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                      placeholder={
+                        isTicketClosed
+                          ? t("support.reopenPlaceholder")
+                          : t("support.replyPlaceholder")
+                      }
+                      className="flex-1 rounded-xl border border-neutral-200 px-4 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
                     />
-                    <Button color="green" onClick={handleSend} disabled={postMessage.isPending}>
-                      {postMessage.isPending ? "Sending..." : isTicketClosed ? "Reopen" : "Send"}
+                    <Button color="teal" onClick={handleSend} disabled={postMessage.isPending}>
+                      {postMessage.isPending
+                        ? t("support.sending")
+                        : isTicketClosed
+                          ? t("support.reopen")
+                          : t("support.send")}
                     </Button>
                   </div>
                 </div>

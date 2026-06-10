@@ -33,7 +33,7 @@ export function Badge({ variant = 'error', size = 'sm', className, ...props }: B
   return (
     <span
       className={[
-        'inline-flex items-center justify-center rounded-1.5 px-1.5 py-1 text-xs leading-4 font-normal whitespace-nowrap',
+        'inline-flex items-center justify-center rounded px-1.5 py-1 text-xs leading-4 font-normal whitespace-nowrap',
         colorClass,
         className,
       ].filter(Boolean).join(' ')}

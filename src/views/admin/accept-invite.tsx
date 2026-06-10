@@ -1,13 +1,14 @@
-import { useForm, Controller, useWatch } from 'react-hook-form'
+﻿import { useForm, Controller, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useState } from 'react'
 import { z } from 'zod'
 import { Button } from '@/components/Button'
 import { Input } from '@/components/Input'
 import { Spinner } from '@/components/Loader/Spinner'
 import { APP_ROUTES } from '@/constants/app-routes'
 import { useAdminValidateInviteQuery, useAdminSetPasswordMutation, useAdmin2faSetupMutation } from '@/api/admin-auth'
+import { useToast } from '@/components/Toast/use-toast'
+import { ApiValidationError } from '@/utils/parseApiError'
 import { setPasswordSchema, passwordRules } from '@/validation/auth'
 
 type SetPasswordValues = z.infer<typeof setPasswordSchema>
@@ -25,11 +26,11 @@ function InviteErrorCard({ title, message }: { title: string; message: string })
 
 export default function AdminAcceptInvitePage() {
   const navigate = useNavigate()
+  const { toast } = useToast()
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
   const setPasswordMutation = useAdminSetPasswordMutation()
   const setup2faMutation = useAdmin2faSetupMutation()
-  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const { data, isLoading, error } = useAdminValidateInviteQuery(token)
 
@@ -85,13 +86,16 @@ export default function AdminAcceptInvitePage() {
 
   async function onSubmit(values: SetPasswordValues) {
     if (!token) return
-    setSubmitError(null)
     try {
       await setPasswordMutation.mutateAsync({ token, password: values.password })
       const { qrCodeUrl, secret } = await setup2faMutation.mutateAsync({ token })
       navigate(APP_ROUTES.admin.setup2fa, { state: { qrCodeUrl, secret, token } })
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'An unexpected error occurred')
+      if (err instanceof ApiValidationError && err.validationDetails.length > 0) {
+        toast({ title: err.message, description: err.validationDetails.join('\n'), color: 'error' })
+      } else {
+        toast({ title: err instanceof Error ? err.message : 'An unexpected error occurred', color: 'error' })
+      }
     }
   }
 
@@ -118,7 +122,7 @@ export default function AdminAcceptInvitePage() {
                   value={field.value}
                   onChange={field.onChange}
                   onBlur={field.onBlur}
-                  color="green"
+                  color="teal"
                   error={fieldState.error?.message}
                   required
                 />
@@ -129,7 +133,7 @@ export default function AdminAcceptInvitePage() {
                         key={rule.label}
                         className={[
                           'flex items-center gap-1 text-xs',
-                          rule.test(password) ? 'text-green-700' : 'text-neutral-400',
+                          rule.test(password) ? 'text-teal-700' : 'text-neutral-400',
                         ].join(' ')}
                       >
                         <span>{rule.test(password) ? '✓' : '○'}</span>
@@ -153,18 +157,14 @@ export default function AdminAcceptInvitePage() {
                 value={field.value}
                 onChange={field.onChange}
                 onBlur={field.onBlur}
-                color="green"
+                color="teal"
                 error={fieldState.error?.message}
                 required
               />
             )}
           />
 
-          {submitError && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{submitError}</p>
-          )}
-
-          <Button type="submit" color="green" className="mt-1 w-full" disabled={isSubmitting}>
+          <Button type="submit" color="teal" className="mt-1 w-full" disabled={isSubmitting}>
             {isSubmitting ? 'Saving…' : 'Continue'}
           </Button>
         </form>

@@ -1,4 +1,4 @@
-const MONTHLY = [
+﻿const MONTHLY = [
   { month: "Jan", revenue: 24500, pro: 18, business: 4 },
   { month: "Feb", revenue: 26200, pro: 19, business: 4 },
   { month: "Mar", revenue: 28100, pro: 21, business: 5 },
@@ -12,7 +12,7 @@ export default function AdminBillingPage() {
   return (
     <main className="py-10">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-neutral-900">Billing</h1>
+        <h1 className="text-2xl font-semibold text-neutral-900">Analytics</h1>
         <p className="mt-1 text-sm text-neutral-500">Platform revenue analytics.</p>
       </div>
 
@@ -30,7 +30,7 @@ export default function AdminBillingPage() {
           {MONTHLY.map((m) => (
             <div key={m.month} className="flex flex-1 flex-col items-center gap-1">
               <div
-                className="w-full rounded-t-md bg-green-500 transition-all"
+                className="w-full rounded-t-md bg-teal-500 transition-all"
                 style={{ height: `${(m.revenue / maxRevenue) * 100}px` }}
               />
               <span className="text-xs text-neutral-400">{m.month}</span>

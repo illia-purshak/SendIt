@@ -1,15 +1,12 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useUpdateSettingsMutation } from "@/api/auth";
 import { Button } from "@/components/Button";
 import { Select } from "@/components/Select/Select";
 import { Switch } from "@/components/Switch";
 import { useToast } from "@/components/Toast/use-toast";
+import { syncLanguage } from "@/i18n/utils";
 import { useProfileRouteData } from "../useProfileRouteData";
-
-const LANGUAGE_OPTIONS = [
-  { value: "uk", label: "Ukrainian" },
-  { value: "en", label: "English" },
-];
 
 const TIMEZONE_OPTIONS = [
   { value: "Europe/Kyiv", label: "Kyiv (UTC+2/+3)" },
@@ -45,7 +42,7 @@ export function SettingsCard() {
         settings: data?.settings ?? null,
         notifications: data?.notifications ?? null,
       })}
-      initialLanguage={data?.settings?.language ?? "uk"}
+      initialLanguage={data?.settings?.language ?? "en"}
       initialTimezone={data?.settings?.timezone ?? "Europe/Kyiv"}
       initialDateFormat={data?.settings?.dateFormat ?? "DD.MM.YYYY"}
       initialNotifications={{
@@ -74,6 +71,7 @@ function SettingsForm({
     email: boolean;
   };
 }) {
+  const { t } = useTranslation();
   const { mutateAsync: updateSettings, isPending } = useUpdateSettingsMutation();
   const { toast } = useToast();
   const [language, setLanguage] = useState(initialLanguage);
@@ -84,12 +82,13 @@ function SettingsForm({
   async function handleSave() {
     try {
       await updateSettings({ language, timezone, dateFormat, notifications });
-      toast({ title: "Settings saved", color: "success" });
+      syncLanguage(language);
+      toast({ title: t("profile.settingsSaved"), color: "success" });
     } catch (error) {
       toast({
-        title: "Failed to save settings",
+        title: t("profile.settingsSaveFailed"),
         description:
-          error instanceof Error ? error.message : "Something went wrong",
+          error instanceof Error ? error.message : t("profile.somethingWentWrong"),
         color: "error",
       });
     }
@@ -97,43 +96,46 @@ function SettingsForm({
 
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-6 text-lg font-semibold text-neutral-900">Settings</h2>
+      <h2 className="mb-6 text-lg font-semibold text-neutral-900">{t("layout.settings")}</h2>
 
       <div className="flex flex-col gap-5">
-        <h3 className="text-sm font-semibold text-neutral-800">Preferences</h3>
+        <h3 className="text-sm font-semibold text-neutral-800">{t("profile.preferences")}</h3>
 
         <Select
-          label="Language"
-          options={LANGUAGE_OPTIONS}
+          label={t("common.language")}
+          options={[
+            { value: "uk", label: t("common.ukrainian") },
+            { value: "en", label: t("common.english") },
+          ]}
           value={language}
           onValueChange={setLanguage}
-          color="green"
+          color="teal"
         />
 
         <Select
-          label="Timezone"
+          label={t("common.timezone")}
           options={TIMEZONE_OPTIONS}
           value={timezone}
           onValueChange={setTimezone}
-          color="green"
+          color="teal"
         />
 
         <Select
-          label="Date format"
+          label={t("common.dateFormat")}
           options={DATE_FORMAT_OPTIONS}
           value={dateFormat}
           onValueChange={setDateFormat}
-          color="green"
+          color="teal"
         />
 
         <div className="border-t border-neutral-100 pt-5">
           <h3 className="mb-4 text-sm font-semibold text-neutral-800">
-            Notifications
+            {t("profile.notificationsHeading")}
           </h3>
           <div className="flex flex-col gap-3">
             <Switch
-              label="Subscription updates"
-              color="green"
+              label={t("profile.subscriptionUpdates")}
+              color="teal"
               checked={notifications.subscription}
               onCheckedChange={(checked) =>
                 setNotifications((current) => ({
@@ -143,8 +145,8 @@ function SettingsForm({
               }
             />
             <Switch
-              label="Postal connection alerts"
-              color="green"
+              label={t("profile.postalConnectionAlerts")}
+              color="teal"
               checked={notifications.postalConnection}
               onCheckedChange={(checked) =>
                 setNotifications((current) => ({
@@ -154,8 +156,8 @@ function SettingsForm({
               }
             />
             <Switch
-              label="System notifications"
-              color="green"
+              label={t("profile.systemNotifications")}
+              color="teal"
               checked={notifications.system}
               onCheckedChange={(checked) =>
                 setNotifications((current) => ({
@@ -165,8 +167,8 @@ function SettingsForm({
               }
             />
             <Switch
-              label="Email notifications"
-              color="green"
+              label={t("profile.emailNotifications")}
+              color="teal"
               checked={notifications.email}
               onCheckedChange={(checked) =>
                 setNotifications((current) => ({
@@ -176,16 +178,16 @@ function SettingsForm({
               }
             />
             <Switch
-              label="Account alerts (always on)"
-              color="green"
+              label={t("profile.accountAlertsAlwaysOn")}
+              color="teal"
               checked={true}
               disabled
             />
           </div>
         </div>
 
-        <Button color="green" disabled={isPending} onClick={handleSave}>
-          {isPending ? "Saving..." : "Save settings"}
+        <Button color="teal" disabled={isPending} onClick={handleSave}>
+          {isPending ? t("common.saving") : t("common.saveSettings")}
         </Button>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminApiClient, parseAdminError } from '@/api/adminApiClient'
 import { API_ROUTES } from '@/constants/api-routes'
-import type { AdminUserListItem, AdminUsersResponse, AdminUserQueryParams } from '@/types/admin-user'
+import type { AdminUserDetail, AdminUsersResponse, AdminUserQueryParams } from '@/types/admin-user'
 
 class AdminUserError extends Error {
   readonly status: number
@@ -34,10 +34,10 @@ export function useAdminUsersQuery(params: AdminUserQueryParams) {
 }
 
 export function useAdminUserQuery(id: number) {
-  return useQuery<AdminUserListItem>({
+  return useQuery<AdminUserDetail>({
     queryKey: ['admin', 'users', id],
     queryFn: async () => {
-      const res = await adminApiClient.get<AdminUserListItem>(API_ROUTES.adminUsers.detail(id))
+      const res = await adminApiClient.get<AdminUserDetail>(API_ROUTES.adminUsers.detail(id))
       if (res.status >= 200 && res.status < 300) return res.data
       throw new AdminUserError(res.status, parseAdminError(res.data))
     },
@@ -53,6 +53,23 @@ export function useAdminUpdateUserStatusMutation() {
       if (res.status >= 200 && res.status < 300) return res.data
       throw new AdminUserError(res.status, parseAdminError(res.data))
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),
+    onSuccess: (_data, { id }) => {
+      qc.invalidateQueries({ queryKey: LIST_KEY })
+      qc.invalidateQueries({ queryKey: ['admin', 'users', id] })
+    },
+  })
+}
+
+export function useAdminDisconnectPostalConnectionMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, connectionId }: { userId: number; connectionId: number }) => {
+      const res = await adminApiClient.delete(API_ROUTES.adminUsers.postalConnection(userId, connectionId))
+      if (res.status >= 200 && res.status < 300) return res.data
+      throw new AdminUserError(res.status, parseAdminError(res.data))
+    },
+    onSuccess: (_data, { userId }) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'users', userId] })
+    },
   })
 }

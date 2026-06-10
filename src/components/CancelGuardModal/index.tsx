@@ -1,4 +1,4 @@
-import * as Dialog from '@radix-ui/react-dialog'
+﻿import * as Dialog from '@radix-ui/react-dialog'
 import { Button } from '@/components/Button'
 
 interface CancelGuardModalProps {
@@ -64,7 +64,7 @@ export function CancelGuardModal({
             </Button>
             <Button
               type="button"
-              color="green"
+              color="teal"
               className="w-full"
               disabled={isSavingDraft}
               onClick={onSaveDraft}

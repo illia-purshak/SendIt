@@ -182,6 +182,12 @@ export interface CreateSimpleShipmentBody {
   draftId?: number
 }
 
+export type CreateShipmentBody =
+  | (CreateNovaPoshtaShipmentBody & { operator: 'nova-post' })
+  | (CreateSimpleShipmentBody & { operator: 'ukrposhta' | 'meest' })
+
+export type CreateShipmentOutput = CreateShipmentResponse | CreateSimpleShipmentResponse
+
 export interface CreateSimpleShipmentResponse {
   ttn: string
   normalizedStatus: ShipmentStatus

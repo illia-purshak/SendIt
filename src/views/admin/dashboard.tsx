@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+﻿import { Link } from 'react-router-dom'
 import { useAdminStatisticsQuery } from '@/api/admin-statistics'
 import { useAdminTicketsQuery } from '@/api/admin-support'
 import { APP_ROUTES } from '@/constants/app-routes'
@@ -14,7 +14,7 @@ const SUMMARY_CARD_CONFIG = [
   {
     key: 'activePaidSubscriptions',
     label: 'Active subscriptions',
-    dot: 'from-green-400 to-green-600',
+    dot: 'from-teal-400 to-teal-600',
   },
   {
     key: 'totalConnectedPostalOperators',
@@ -188,7 +188,7 @@ export default function AdminDashboardPage() {
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-neutral-900">Admin dashboard</h1>
         <div className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-400">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-500" />
           Live data
         </div>
       </div>
@@ -209,14 +209,8 @@ export default function AdminDashboardPage() {
       )}
 
       <div className="mb-8">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4">
           <h2 className="text-base font-semibold text-neutral-900">Operators</h2>
-          <Link
-            to={APP_ROUTES.admin.services}
-            className="text-sm font-medium text-green-600 hover:text-green-700"
-          >
-            See All
-          </Link>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {orderedOperators.map(({ code, operator, initials, iconBg, iconText }) => (
@@ -236,7 +230,7 @@ export default function AdminDashboardPage() {
           <h2 className="text-base font-semibold text-neutral-900">Recent Support Tickets</h2>
           <Link
             to={APP_ROUTES.admin.support}
-            className="text-sm font-medium text-green-600 hover:text-green-700"
+            className="text-sm font-medium text-teal-600 hover:text-teal-700"
           >
             See All
           </Link>
@@ -271,7 +265,7 @@ export default function AdminDashboardPage() {
                     <td className="px-5 py-4">
                       <Link
                         to={APP_ROUTES.admin.support}
-                        className="block hover:text-green-700"
+                        className="block hover:text-teal-700"
                       >
                         <p className="font-medium text-neutral-900">{ticket.subject}</p>
                         <p className="text-xs text-neutral-400">

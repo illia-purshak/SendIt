@@ -21,7 +21,7 @@ export const accordionContentVariants: Record<AccordionVariant, string> = {
 }
 
 export const accordionTriggerColors: Record<UiColor, string> = {
-  green:   'hover:text-green-700   data-[state=open]:text-green-700',
+  teal:    'hover:text-teal-700    data-[state=open]:text-teal-700',
   neutral: 'hover:text-neutral-600 data-[state=open]:text-neutral-900',
   info:    'hover:text-info-600    data-[state=open]:text-info-600',
   warning: 'hover:text-warning-500 data-[state=open]:text-warning-500',

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import {
   useAdminPlansQuery,
   useAdminCreatePlanMutation,
@@ -50,8 +50,8 @@ function PlanFormDialog({ plan, open, onClose }: PlanFormDialogProps) {
       ? {
           name: plan.name,
           level: plan.level,
-          price: plan.price,
-          priceYearly: plan.priceYearly,
+          price: String(plan.price),
+          priceYearly: plan.priceYearly != null ? String(plan.priceYearly) : null,
           maxOperators: plan.maxOperators,
           hasAnalytics: plan.hasAnalytics,
           hasTemplates: plan.hasTemplates,
@@ -96,7 +96,7 @@ function PlanFormDialog({ plan, open, onClose }: PlanFormDialogProps) {
   }
 
   return (
-    <AlertDialog open={open} color="green">
+    <AlertDialog open={open} color="teal">
       <AlertDialogContent className="max-w-lg">
         <AlertDialogTitle>{plan ? 'Edit plan' : 'New plan'}</AlertDialogTitle>
         <div className="mt-4 grid grid-cols-2 gap-3">
@@ -106,7 +106,7 @@ function PlanFormDialog({ plan, open, onClose }: PlanFormDialogProps) {
               value={form.name}
               onChange={e => set('name', e.target.value)}
               placeholder="e.g. Pro"
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
             />
           </div>
 
@@ -117,7 +117,7 @@ function PlanFormDialog({ plan, open, onClose }: PlanFormDialogProps) {
               min={0}
               value={form.level}
               onChange={e => set('level', Number(e.target.value))}
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
             />
           </div>
 
@@ -128,7 +128,7 @@ function PlanFormDialog({ plan, open, onClose }: PlanFormDialogProps) {
               min={1}
               value={form.maxOperators}
               onChange={e => set('maxOperators', Number(e.target.value))}
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
             />
           </div>
 
@@ -138,7 +138,7 @@ function PlanFormDialog({ plan, open, onClose }: PlanFormDialogProps) {
               value={form.price}
               onChange={e => set('price', e.target.value)}
               placeholder="0.00"
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
             />
           </div>
 
@@ -148,7 +148,7 @@ function PlanFormDialog({ plan, open, onClose }: PlanFormDialogProps) {
               value={form.priceYearly ?? ''}
               onChange={e => set('priceYearly', e.target.value || null)}
               placeholder="0.00"
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
             />
           </div>
 
@@ -168,7 +168,7 @@ function PlanFormDialog({ plan, open, onClose }: PlanFormDialogProps) {
                     type="checkbox"
                     checked={!!form[key]}
                     onChange={e => set(key, e.target.checked as AdminPlanBody[typeof key])}
-                    className="accent-green-600"
+                    className="accent-teal-600"
                   />
                   {label}
                 </label>
@@ -189,7 +189,7 @@ function PlanFormDialog({ plan, open, onClose }: PlanFormDialogProps) {
                   type="checkbox"
                   checked={!!form[key]}
                   onChange={e => set(key, e.target.checked as AdminPlanBody[typeof key])}
-                  className="accent-green-600"
+                  className="accent-teal-600"
                 />
                 {label}
               </label>
@@ -205,7 +205,7 @@ function PlanFormDialog({ plan, open, onClose }: PlanFormDialogProps) {
                 value={form.targetUserId ?? ''}
                 onChange={e => set('targetUserId', e.target.value ? Number(e.target.value) : null)}
                 placeholder="User ID"
-                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
               />
             </div>
           )}
@@ -269,7 +269,7 @@ function FeatureBadge({ label, active }: { label: string; active: boolean }) {
     <span
       className={[
         'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-        active ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-400',
+        active ? 'bg-teal-100 text-teal-700' : 'bg-neutral-100 text-neutral-400',
       ].join(' ')}
     >
       {label}
@@ -306,7 +306,7 @@ export default function AdminPlansPage() {
           <h1 className="text-2xl font-semibold text-neutral-900">Plans</h1>
           <p className="mt-1 text-sm text-neutral-500">Manage subscription plan catalog.</p>
         </div>
-        <Button color="green" size="sm" onClick={() => setShowCreate(true)}>
+        <Button color="teal" size="sm" onClick={() => setShowCreate(true)}>
           New plan
         </Button>
       </div>

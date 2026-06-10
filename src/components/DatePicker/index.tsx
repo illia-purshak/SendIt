@@ -1,7 +1,9 @@
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { DayPicker } from "react-day-picker";
+import { formatDate } from "@/i18n/utils";
 import {
   calendarDayFocusRing,
   calendarNavButton,
@@ -11,14 +13,6 @@ import {
   type DatePickerVariant,
 } from "./variants";
 import { defaultUiColor, type UiColor } from "../ui.config";
-
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
-}
 
 interface DatePickerProps {
   value?: Date;
@@ -33,12 +27,13 @@ interface DatePickerProps {
 export function DatePicker({
   value: valueProp,
   onChange,
-  placeholder = "Pick a date",
+  placeholder,
   disabled,
   variant = "default",
   color = defaultUiColor,
   className,
 }: DatePickerProps) {
+  const { t } = useTranslation();
   const [internalValue, setInternalValue] = useState<Date | undefined>();
   const isControlled = valueProp !== undefined || onChange !== undefined;
   const value = isControlled ? valueProp : internalValue;
@@ -69,7 +64,9 @@ export function DatePicker({
             value ? "text-neutral-900" : "text-neutral-400",
           ].join(" ")}
         >
-          {value ? formatDate(value) : placeholder}
+          {value
+            ? formatDate(value, { month: "long", day: "numeric", year: "numeric" })
+            : (placeholder ?? t("common.pickDate"))}
         </span>
       </PopoverPrimitive.Trigger>
 

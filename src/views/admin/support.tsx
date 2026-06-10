@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAdminTicketsQuery, useAdminUpdateTicketMutation } from "@/api/admin-support";
@@ -253,7 +253,7 @@ export default function AdminSupportPage() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search by subject or company..."
-            className="h-9 rounded-md border border-neutral-200 px-3 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+            className="h-9 rounded-md border border-neutral-200 px-3 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
           />
         }
         onResetState={resetTableState}
