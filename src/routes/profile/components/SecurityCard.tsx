@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AUTH_QUERY_KEY,
@@ -13,6 +14,7 @@ import { useToast } from "@/components/Toast/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
 export function SecurityCard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -24,7 +26,7 @@ export function SecurityCard() {
     useChangePasswordMutation();
 
   const [twoFaStep, setTwoFaStep] = useState<"idle" | "setup" | "verify">(
-    "idle"
+    "idle",
   );
   const [setupData, setSetupData] = useState<{
     qrCodeUrl: string;
@@ -47,12 +49,12 @@ export function SecurityCard() {
 
     try {
       await changePassword({ currentPassword, newPassword });
-      toast({ title: "Password updated", color: "success" });
+      toast({ title: t("profile.passwordUpdated"), color: "success" });
       setCurrentPassword("");
       setNewPassword("");
     } catch (error) {
       setPasswordError(
-        error instanceof Error ? error.message : "Something went wrong"
+        error instanceof Error ? error.message : t("profile.somethingWentWrong"),
       );
     }
   }
@@ -67,7 +69,7 @@ export function SecurityCard() {
       setTwoFaStep("verify");
     } catch (error) {
       setTwoFaError(
-        error instanceof Error ? error.message : "Something went wrong"
+        error instanceof Error ? error.message : t("profile.somethingWentWrong"),
       );
       setTwoFaStep("idle");
     }
@@ -79,12 +81,14 @@ export function SecurityCard() {
     try {
       await enable2fa(verifyCode);
       await queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY });
-      toast({ title: "Two-factor authentication enabled", color: "success" });
+      toast({ title: t("profile.twoFactorEnabled"), color: "success" });
       setTwoFaStep("idle");
       setSetupData(null);
       setVerifyCode("");
     } catch (error) {
-      setTwoFaError(error instanceof Error ? error.message : "Invalid code");
+      setTwoFaError(
+        error instanceof Error ? error.message : t("validation.codeSixDigits"),
+      );
     }
   }
 
@@ -94,35 +98,44 @@ export function SecurityCard() {
     try {
       await disable2fa(disableCode);
       await queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY });
-      toast({ title: "Two-factor authentication disabled", color: "success" });
+      toast({ title: t("profile.twoFactorDisabled"), color: "success" });
       setDisableCode("");
     } catch (error) {
-      setTwoFaError(error instanceof Error ? error.message : "Invalid code");
+      setTwoFaError(
+        error instanceof Error ? error.message : t("validation.codeSixDigits"),
+      );
     }
   }
 
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-6 text-lg font-semibold text-neutral-900">Security</h2>
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold text-neutral-900">
+          {t("profile.securityTitle")}
+        </h2>
+        <p className="mt-1 text-sm text-neutral-500">
+          {t("profile.securitySubtitle")}
+        </p>
+      </div>
 
       <div className="mb-6">
         <h3 className="mb-4 text-sm font-semibold text-neutral-800">
-          Change password
+          {t("profile.changePassword")}
         </h3>
         <div className="flex flex-col gap-3">
           <Input
-            label="Current password"
+            label={t("profile.currentPassword")}
             type="password"
             value={currentPassword}
             onChange={(event) => setCurrentPassword(event.target.value)}
-            color="green"
+            color="teal"
           />
           <Input
-            label="New password"
+            label={t("common.newPassword")}
             type="password"
             value={newPassword}
             onChange={(event) => setNewPassword(event.target.value)}
-            color="green"
+            color="teal"
           />
           {passwordError && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -130,33 +143,33 @@ export function SecurityCard() {
             </p>
           )}
           <Button
-            color="green"
+            color="teal"
             disabled={changingPassword || !currentPassword || !newPassword}
             onClick={handleChangePassword}
           >
-            {changingPassword ? "Updating..." : "Update password"}
+            {changingPassword ? t("common.saving") : t("profile.updatePassword")}
           </Button>
         </div>
       </div>
 
       <div className="border-t border-neutral-100 pt-6">
         <h3 className="mb-3 text-sm font-semibold text-neutral-800">
-          Two-factor authentication
+          {t("profile.twoFactorTitle")}
         </h3>
         <div className="mb-4 flex items-center gap-2">
           <span
             className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
               twoFactorEnabled
-                ? "bg-green-100 text-green-800"
+                ? "bg-teal-100 text-teal-800"
                 : "bg-neutral-100 text-neutral-600"
             }`}
           >
-            {twoFactorEnabled ? "Active" : "Inactive"}
+            {twoFactorEnabled ? t("profile.active") : t("profile.inactive")}
           </span>
           <span className="text-sm text-neutral-500">
             {twoFactorEnabled
-              ? "Your account is protected with TOTP."
-              : "Add an extra layer of security to your account."}
+              ? t("profile.totpProtected")
+              : t("profile.totpExtraSecurity")}
           </span>
         </div>
 
@@ -169,49 +182,47 @@ export function SecurityCard() {
         {!twoFactorEnabled && twoFaStep === "idle" && (
           <Button
             variant="outline"
-            color="green"
+            color="teal"
             disabled={settingUp2fa}
             onClick={handleStartSetup}
           >
-            Enable 2FA
+            {t("profile.enable2fa")}
           </Button>
         )}
 
         {!twoFactorEnabled && twoFaStep === "setup" && (
-          <p className="text-sm text-neutral-400">Setting up...</p>
+          <p className="text-sm text-neutral-400">{t("profile.settingUp")}</p>
         )}
 
         {!twoFactorEnabled && twoFaStep === "verify" && setupData && (
           <div className="flex flex-col gap-4">
-            <p className="text-sm text-neutral-600">
-              Scan this QR code with your authenticator app:
-            </p>
+            <p className="text-sm text-neutral-600">{t("profile.scanQr")}</p>
             <img
               src={setupData.qrCodeUrl}
-              alt="2FA QR code"
+              alt={t("profile.twoFactorTitle")}
               className="h-40 w-40"
             />
             <p className="text-sm text-neutral-500">
-              Or enter manually:{" "}
+              {t("profile.enterManually")}{" "}
               <code className="rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-xs">
                 {setupData.secret}
               </code>
             </p>
             <Input
-              label="Verification code"
+              label={t("auth.authenticationCode")}
               placeholder="123456"
               maxLength={6}
               value={verifyCode}
               onChange={(event) => setVerifyCode(event.target.value)}
-              color="green"
+              color="teal"
             />
             <div className="flex gap-2">
               <Button
-                color="green"
+                color="teal"
                 disabled={enabling2fa || verifyCode.length !== 6}
                 onClick={handleEnable2fa}
               >
-                {enabling2fa ? "Verifying..." : "Confirm"}
+                {enabling2fa ? t("common.saving") : t("profile.confirm")}
               </Button>
               <Button
                 variant="outline"
@@ -223,7 +234,7 @@ export function SecurityCard() {
                   setTwoFaError(null);
                 }}
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
             </div>
           </div>
@@ -232,12 +243,12 @@ export function SecurityCard() {
         {twoFactorEnabled && (
           <div className="flex flex-col gap-3">
             <Input
-              label="Current TOTP code"
+              label={t("profile.currentTotpCode")}
               placeholder="123456"
               maxLength={6}
               value={disableCode}
               onChange={(event) => setDisableCode(event.target.value)}
-              color="green"
+              color="teal"
             />
             <Button
               variant="outline"
@@ -245,7 +256,7 @@ export function SecurityCard() {
               disabled={disabling2fa || disableCode.length !== 6}
               onClick={handleDisable2fa}
             >
-              {disabling2fa ? "Disabling..." : "Disable 2FA"}
+              {disabling2fa ? t("common.saving") : t("profile.disable2fa")}
             </Button>
           </div>
         )}

@@ -1,17 +1,17 @@
 export const PAGE_SECTIONS = [
-  { id: "profile", label: "Profile" },
-  { id: "subscription", label: "Subscription" },
-  { id: "settings", label: "Settings" },
-  { id: "postal", label: "Postal operators" },
-  { id: "payment", label: "Payment method" },
-  { id: "security", label: "Security" },
-  { id: "danger", label: "Danger zone" },
+  { id: "profile", labelKey: "layout.profile" },
+  { id: "subscription", labelKey: "profile.subscription" },
+  { id: "settings", labelKey: "layout.settings" },
+  { id: "postal", labelKey: "profile.postalOperators" },
+  { id: "payment", labelKey: "profile.paymentMethod" },
+  { id: "security", labelKey: "profile.security" },
+  { id: "danger", labelKey: "profile.dangerZone" },
 ] as const;
 
 export type PageSectionsIdType = (typeof PAGE_SECTIONS)[number]["id"];
-export type PageSectionsLabelType = (typeof PAGE_SECTIONS)[number]["label"];
+export type PageSectionsLabelKeyType = (typeof PAGE_SECTIONS)[number]["labelKey"];
 
 export type PageSectionsType = {
   id: PageSectionsIdType;
-  label: PageSectionsLabelType;
+  labelKey: PageSectionsLabelKeyType;
 };

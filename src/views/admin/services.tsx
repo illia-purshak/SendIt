@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Package, Pencil, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/Button";
 import { IconButton } from "@/components/IconButton";
@@ -108,7 +108,7 @@ function ServiceEditorDialog({
               type="text"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className="rounded-xl border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+              className="rounded-xl border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
               placeholder="Nova Poshta"
             />
           </label>
@@ -119,7 +119,7 @@ function ServiceEditorDialog({
               value={slug}
               onChange={(event) => setSlug(event.target.value)}
               disabled={mode === "edit"}
-              className="rounded-xl border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 disabled:bg-neutral-50 disabled:text-neutral-400"
+              className="rounded-xl border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 disabled:bg-neutral-50 disabled:text-neutral-400"
               placeholder="nova-poshta"
             />
           </label>
@@ -129,7 +129,7 @@ function ServiceEditorDialog({
               type="url"
               value={logoUrl}
               onChange={(event) => setLogoUrl(event.target.value)}
-              className="rounded-xl border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+              className="rounded-xl border border-neutral-200 px-4 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
               placeholder="https://..."
             />
           </label>
@@ -213,7 +213,7 @@ export default function AdminServicesPage() {
             Manage which operators are available to clients.
           </p>
         </div>
-        <Button color="green" onClick={openCreateDialog}>
+        <Button color="teal" onClick={openCreateDialog}>
           Add service
         </Button>
       </div>
@@ -284,7 +284,7 @@ export default function AdminServicesPage() {
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                           service.isActive
-                            ? "bg-green-100 text-green-800"
+                            ? "bg-teal-100 text-teal-800"
                             : "bg-neutral-100 text-neutral-500"
                         }`}
                       >

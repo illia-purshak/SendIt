@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ListFilter, RotateCcw } from "lucide-react";
 import { DataTableCtx } from "./context";
 import { DataTableColumnVisibilityDropdown } from "./DataTableColumnVisibilityDropdown";
@@ -39,6 +40,8 @@ function FilterToggleButton({
   onToggle,
   activeCount,
 }: FilterToggleButtonProps) {
+  const { t } = useTranslation();
+
   return (
     <button
       type="button"
@@ -53,7 +56,7 @@ function FilterToggleButton({
       ].join(" ")}
     >
       <ListFilter size={15} />
-      Filters
+      {t("dataTable.filters")}
       {activeCount > 0 && (
         <span className="ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-green-500 px-1 text-xs font-bold text-white">
           {activeCount}
@@ -89,6 +92,7 @@ export function DataTable<TRow>({
   onResetState,
   className,
 }: DataTableProps<TRow>) {
+  const { t } = useTranslation();
   const sorting = useDataTableSorting({
     value: sortState,
     onChange: onSortChange,
@@ -179,7 +183,7 @@ export function DataTable<TRow>({
                   ].join(" ")}
                 >
                   <RotateCcw size={14} />
-                  Reset filters
+                  {t("dataTable.resetFilters")}
                 </button>
               )}
               {hasFilterableColumns && (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Lock, Send, Trash2, Unlock } from "lucide-react";
 import { Button } from "@/components/Button";
 import { IconButton } from "@/components/IconButton";
@@ -23,7 +23,7 @@ import { toastStore } from "@/store/toastStore";
 import type { AdminMemberStatus } from "@/types/admin-admin";
 
 const STATUS_CLASS: Record<AdminMemberStatus, string> = {
-  ACTIVE: "bg-green-100 text-green-800",
+  ACTIVE: "bg-teal-100 text-teal-800",
   INACTIVE: "bg-neutral-100 text-neutral-500",
   PENDING: "bg-yellow-100 text-yellow-700",
   DELETED: "bg-red-100 text-red-700",
@@ -53,7 +53,7 @@ export default function AdminAdminsPage() {
     } catch (err) {
       const message =
         err instanceof AdminInviteConflictError
-          ? "An invite for this email is already pending or the email is already in use."
+          ? "An active invite for this email already exists."
           : err instanceof Error
             ? err.message
             : "Failed to send invite";
@@ -121,7 +121,7 @@ export default function AdminAdminsPage() {
             Manage platform administrators. Only super admins can invite or remove admins.
           </p>
         </div>
-        <Button color="green" onClick={() => setInviteOpen(true)}>
+        <Button color="teal" onClick={() => setInviteOpen(true)}>
           Invite admin
         </Button>
       </div>
@@ -141,14 +141,14 @@ export default function AdminAdminsPage() {
                 </span>
                 <button
                   type="button"
-                  className="shrink-0 text-xs font-medium text-green-700 transition-colors hover:text-green-900"
+                  className="shrink-0 text-xs font-medium text-teal-700 transition-colors hover:text-teal-900"
                   onClick={() => navigator.clipboard.writeText(inviteUrl)}
                 >
                   Copy
                 </button>
               </div>
               <AlertDialogFooter>
-                <Button color="green" onClick={handleInviteClose}>
+                <Button color="teal" onClick={handleInviteClose}>
                   Done
                 </Button>
               </AlertDialogFooter>
@@ -161,14 +161,14 @@ export default function AdminAdminsPage() {
                 placeholder="newadmin@company.com"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
-                color="green"
+                color="teal"
                 required
                 onKeyDown={(e) => e.key === "Enter" && handleInvite()}
               />
               <AlertDialogFooter>
                 <AlertDialogCancel onClick={handleInviteClose}>Cancel</AlertDialogCancel>
                 <Button
-                  color="green"
+                  color="teal"
                   onClick={handleInvite}
                   disabled={inviteMutation.isPending || !inviteEmail.trim()}
                 >
@@ -262,6 +262,18 @@ export default function AdminAdminsPage() {
                             title={isResending ? "Resending invite" : "Resend invite"}
                             disabled={isResending}
                             onClick={() => handleResendInvite(admin.id)}
+                          >
+                            <Send size={14} />
+                          </IconButton>
+                        )}
+                        {admin.status === "DELETED" && (
+                          <IconButton
+                            aria-label="Invite again"
+                            variant="ghost"
+                            color="neutral"
+                            size="sm"
+                            title="Invite again"
+                            onClick={() => { setInviteEmail(admin.email); setInviteOpen(true); }}
                           >
                             <Send size={14} />
                           </IconButton>

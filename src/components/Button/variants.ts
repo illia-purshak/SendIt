@@ -5,13 +5,13 @@ export type ButtonVariant = 'default' | 'outline' | 'ghost'
 export type ButtonSize = 'sm' | 'md' | 'lg'
 
 export const buttonSizes: Record<ButtonSize, string> = {
-  sm: 'h-8 px-3 text-sm',
-  md: 'h-10 px-4 text-sm',
-  lg: 'h-12 px-6 text-base',
+  sm: 'h-7 px-3 text-sm',
+  md: 'h-8 px-3 text-sm',
+  lg: 'h-9 px-4 text-sm',
 }
 
 export const buttonFocusRing: Record<ButtonColor, string> = {
-  green:   'focus-visible:ring-green-700',
+  teal:    'focus-visible:ring-teal-700',
   neutral: 'focus-visible:ring-neutral-600',
   info:    'focus-visible:ring-info-600',
   warning: 'focus-visible:ring-warning-500',
@@ -25,10 +25,10 @@ export const buttonFocusRing: Record<ButtonColor, string> = {
 type ColorDef = Record<ButtonVariant, string>
 
 const colorDefs: Record<ButtonColor, ColorDef> = {
-  green: {
-    default: 'bg-green-700 text-white hover:bg-green-500 active:bg-green-950',
-    outline: 'border border-green-700 text-green-700 hover:bg-green-100 active:bg-green-200',
-    ghost:   'text-green-700 hover:bg-green-100 active:bg-green-200',
+  teal: {
+    default: 'bg-teal-700 text-white hover:bg-teal-800 active:bg-teal-900',
+    outline: 'border border-teal-700 text-teal-700 hover:bg-teal-50 active:bg-teal-100',
+    ghost:   'text-teal-700 hover:bg-teal-50 active:bg-teal-100',
   },
   neutral: {
     default: 'bg-neutral-900 text-neutral-50 hover:bg-neutral-600',

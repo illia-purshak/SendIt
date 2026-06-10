@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { apiClient, parseError } from '@/api/apiClient'
 import { API_ROUTES } from '@/constants/api-routes'
+import type { ApiErrorResponse } from '@/types/api-error'
 
 export class ApiError extends Error {
   readonly status: number
@@ -27,18 +28,19 @@ export function useConnectNovaPostMutation() {
   return useMutation({
     mutationFn: async (body: { phone?: string; apiKey?: string }) => {
       const res = await apiClient.post<{ connected: boolean }>(
-        API_ROUTES.novaPost.connect,
+        API_ROUTES.postalConnections.create,
         body,
-        { validateStatus: () => true },
+        { params: { operator: 'nova-post' }, validateStatus: () => true },
       )
 
       if (res.status >= 200 && res.status < 300) return res.data
 
-      if (res.status === 403 && (res.data as unknown as { code?: string })?.code === 'OPERATOR_LIMIT_REACHED') {
-        const d = res.data as unknown as { maxOperators: number; currentPlan: string; message?: string }
+      if (res.status === 403 && (res.data as unknown as ApiErrorResponse)?.code === 'OPERATOR_LIMIT_REACHED') {
+        const d = res.data as unknown as ApiErrorResponse
+        const meta = d.details?.meta ?? {}
         throw new OperatorLimitError(
-          d.maxOperators,
-          d.currentPlan,
+          (meta.maxOperators as number) ?? 0,
+          (meta.currentPlan as string) ?? '',
           d.message ?? 'Upgrade your plan to connect more operators',
         )
       }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { APP_ROUTES } from "@/constants/app-routes";
@@ -12,6 +13,7 @@ import type z from "zod";
 type RegisterValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
@@ -41,10 +43,10 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-12">
       <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
         <h1 className="mb-1 text-2xl font-semibold text-neutral-900">
-          Create account
+          {t("auth.createAccount")}
         </h1>
         <p className="mb-6 text-sm text-neutral-500">
-          Join SendIt — register your organization
+          {t("auth.joinOrganization")}
         </p>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -53,13 +55,13 @@ export default function RegisterPage() {
             name="email"
             render={({ field, fieldState }) => (
               <Input
-                label="Email"
+                label={t("common.email")}
                 type="email"
                 placeholder="you@example.com"
                 value={field.value}
                 onChange={field.onChange}
                 onBlur={field.onBlur}
-                color="green"
+                color="teal"
                 error={fieldState.error?.message}
                 required
               />
@@ -72,13 +74,13 @@ export default function RegisterPage() {
             render={({ field, fieldState }) => (
               <div className="flex flex-col gap-1.5">
                 <Input
-                  label="Password"
+                  label={t("common.password")}
                   type="password"
                   placeholder="••••••••"
                   value={field.value}
                   onChange={field.onChange}
                   onBlur={field.onBlur}
-                  color="green"
+                  color="teal"
                   error={fieldState.error?.message}
                   required
                 />
@@ -90,7 +92,7 @@ export default function RegisterPage() {
                         className={[
                           "flex items-center gap-1 text-xs",
                           rule.test(password)
-                            ? "text-green-700"
+                            ? "text-teal-700"
                             : "text-neutral-400",
                         ].join(" ")}
                       >
@@ -112,21 +114,21 @@ export default function RegisterPage() {
 
           <Button
             type="submit"
-            color="green"
+            color="teal"
             className="mt-1 w-full"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Creating account…" : "Create account"}
+            {isSubmitting ? t("auth.creatingAccount") : t("auth.createAccount")}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-neutral-500">
-          Already have an account?{" "}
+          {t("auth.alreadyHaveAccount")}{" "}
           <Link
             to={APP_ROUTES.login}
-            className="font-medium text-green-700 hover:underline"
+            className="font-medium text-teal-700 hover:underline"
           >
-            Sign in
+            {t("auth.signIn")}
           </Link>
         </p>
       </div>

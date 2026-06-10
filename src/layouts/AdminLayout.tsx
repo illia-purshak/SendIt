@@ -1,29 +1,17 @@
+import { useEffect } from "react";
 import { NavLink, Outlet } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useAdminProfileQuery } from "@/api/admin-profile";
 import { APP_ROUTES } from "@/constants/app-routes";
 import { useAdminTicketsQuery } from "@/api/admin-support";
+import { syncLanguage } from "@/i18n/utils";
 import { adminTokenStore } from "@/store/adminTokenStore";
 import { getTicketUnreadCount } from "@/views/support/support-meta";
-
-const BASE_NAV_ITEMS = [
-  { label: "Dashboard", to: APP_ROUTES.admin.dashboard },
-  { label: "Users", to: APP_ROUTES.admin.users },
-  { label: "Subscriptions", to: APP_ROUTES.admin.subscriptions },
-  { label: "Support", to: APP_ROUTES.admin.support },
-  { label: "My tickets", to: APP_ROUTES.admin.mySupport },
-  { label: "Services", to: APP_ROUTES.admin.services },
-  { label: "Billing", to: APP_ROUTES.admin.billing },
-];
-
-const SUPER_ADMIN_NAV_ITEMS = [
-  { label: "Admins", to: APP_ROUTES.admin.admins },
-];
-
-const SETTINGS_NAV_ITEM = { label: "Settings", to: APP_ROUTES.admin.settings };
 
 function navItemClass(isActive: boolean) {
   return `block rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
     isActive
-      ? "bg-green-50 text-green-700"
+      ? "bg-teal-50 text-teal-700"
       : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
   }`;
 }
@@ -44,28 +32,50 @@ function getInitials(email: string | null, firstName: string | null, lastName: s
 }
 
 export const AdminLayout = () => {
+  const { t } = useTranslation();
   const isSuperAdmin = adminTokenStore.getIsSuperAdmin();
-  const navItems = isSuperAdmin ? [...BASE_NAV_ITEMS, ...SUPER_ADMIN_NAV_ITEMS] : BASE_NAV_ITEMS;
+  const { data: profile } = useAdminProfileQuery(adminTokenStore.hasSession());
+  const baseNavItems = [
+    { label: t("layout.dashboard"), to: APP_ROUTES.admin.dashboard },
+    { label: t("layout.users"), to: APP_ROUTES.admin.users },
+    { label: t("layout.subscriptions"), to: APP_ROUTES.admin.plans },
+    { label: t("layout.support"), to: APP_ROUTES.admin.support },
+    { label: t("layout.myTickets"), to: APP_ROUTES.admin.mySupport },
+    { label: t("layout.analytics"), to: APP_ROUTES.admin.billing },
+  ];
+  const navItems = isSuperAdmin
+    ? [...baseNavItems, { label: t("layout.admins"), to: APP_ROUTES.admin.admins }]
+    : baseNavItems;
   const { data: myTicketsData } = useAdminTicketsQuery({
     assigned: "me",
     page: 1,
     limit: 100,
   });
   const session = adminTokenStore.getSession();
-  const email = session?.email ?? "admin@sendit.com";
-  const roleLabel = isSuperAdmin ? "Super Admin" : "Admin";
-  const initials = getInitials(email, session?.firstName ?? null, session?.lastName ?? null);
+  const email = profile?.email ?? session?.email ?? "admin@sendit.com";
+  const currentRoleLabel = isSuperAdmin ? t("common.superAdmin") : t("common.admin");
+  const initials = getInitials(
+    email,
+    profile?.firstName ?? session?.firstName ?? null,
+    profile?.lastName ?? session?.lastName ?? null,
+  );
   const myUnreadCount = (myTicketsData?.items ?? []).reduce(
     (sum, ticket) => sum + getTicketUnreadCount(ticket),
     0,
   );
 
+  useEffect(() => {
+    if (profile?.settings?.language) {
+      syncLanguage(profile.settings.language);
+    }
+  }, [profile?.settings?.language]);
+
   return (
     <div className="flex min-h-screen bg-neutral-50">
       <aside className="flex w-56 shrink-0 flex-col border-r border-neutral-200 bg-white">
         <div className="border-b border-neutral-100 px-6 py-5">
-          <span className="text-lg font-bold tracking-tight text-green-700">SendIt</span>
-          <p className="mt-0.5 text-xs font-medium text-neutral-400 uppercase tracking-wide">Admin</p>
+          <span className="text-lg font-bold tracking-tight text-teal-700">{t("common.appName")}</span>
+          <p className="mt-0.5 text-xs font-medium text-neutral-400 uppercase tracking-wide">{t("layout.adminPanel")}</p>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
@@ -84,7 +94,7 @@ export const AdminLayout = () => {
                   <span className="flex items-center justify-between gap-2">
                     <span>{item.label}</span>
                     {item.to === APP_ROUTES.admin.mySupport && myUnreadCount > 0 ? (
-                      <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-green-700 px-1.5 text-[11px] font-semibold text-white">
+                      <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-teal-700 px-1.5 text-[11px] font-semibold text-white">
                         {myUnreadCount > 99 ? "99+" : myUnreadCount}
                       </span>
                     ) : null}
@@ -97,10 +107,10 @@ export const AdminLayout = () => {
 
         <div className="border-t border-neutral-100 p-3">
           <NavLink
-            to={SETTINGS_NAV_ITEM.to}
+            to={APP_ROUTES.admin.settings}
             className={({ isActive }) => navItemClass(isActive)}
           >
-            {SETTINGS_NAV_ITEM.label}
+            {t("layout.settings")}
           </NavLink>
         </div>
       </aside>
@@ -112,20 +122,20 @@ export const AdminLayout = () => {
               to={APP_ROUTES.admin.profile}
               className="flex items-center gap-3 rounded-2xl border border-transparent px-2 py-1.5 transition-colors hover:border-neutral-200 hover:bg-neutral-50"
             >
-              {session?.avatarUrl ? (
+              {(profile?.avatarUrl ?? session?.avatarUrl) ? (
                 <img
-                  src={session.avatarUrl}
+                  src={profile?.avatarUrl ?? session?.avatarUrl ?? ""}
                   alt={email}
                   className="h-10 w-10 rounded-full object-cover"
                 />
               ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 text-sm font-semibold text-green-700">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-700">
                   {initials}
                 </div>
               )}
               <div className="min-w-0 text-right">
                 <p className="truncate text-sm font-medium text-neutral-900">{email}</p>
-                <p className="text-xs font-medium text-neutral-500">{roleLabel}</p>
+                <p className="text-xs font-medium text-neutral-500">{currentRoleLabel}</p>
               </div>
             </NavLink>
           </div>
@@ -136,4 +146,4 @@ export const AdminLayout = () => {
       </div>
     </div>
   );
-};
+}

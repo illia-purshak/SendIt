@@ -1,4 +1,4 @@
-import { Input } from ".";
+﻿import { Input } from ".";
 
 const NumericInput = ({
   label,
@@ -22,7 +22,7 @@ const NumericInput = ({
       step="any"
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      color="green"
+      color="teal"
       error={error}
     />
   );

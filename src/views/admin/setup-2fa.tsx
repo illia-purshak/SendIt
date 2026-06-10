@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -121,7 +121,7 @@ export default function AdminSetup2faPage() {
                 value={field.value}
                 onChange={field.onChange}
                 onBlur={field.onBlur}
-                color="green"
+                color="teal"
                 error={fieldState.error?.message}
                 required
               />
@@ -134,7 +134,7 @@ export default function AdminSetup2faPage() {
 
           <Button
             type="submit"
-            color="green"
+            color="teal"
             className="mt-1 w-full"
             disabled={isSubmitting || !qrCodeUrl}
           >

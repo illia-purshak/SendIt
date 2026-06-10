@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient, parseError } from '@/api/apiClient'
+import { parseApiError, ApiValidationError } from '@/utils/parseApiError'
 import { API_ROUTES } from '@/constants/api-routes'
 import type { PaginatedResponse } from '@/types/pagination'
 import type { Recipient, RecipientsResponse, RecipientBody, RecipientQueryParams } from '@/types/recipient'
@@ -80,6 +81,10 @@ export function useCreateRecipientMutation() {
     mutationFn: async (body: RecipientBody) => {
       const res = await apiClient.post<Recipient>(API_ROUTES.recipients.list, body)
       if (res.status >= 200 && res.status < 300) return res.data
+      if (res.status === 400 || res.status === 422) {
+        const { message, validationDetails } = parseApiError(res.data)
+        throw new ApiValidationError(res.status, message, validationDetails)
+      }
       throw new RecipientError(res.status, parseError(res.data))
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),
@@ -92,6 +97,10 @@ export function useUpdateRecipientMutation() {
     mutationFn: async ({ id, body }: { id: number; body: Partial<RecipientBody> }) => {
       const res = await apiClient.put<Recipient>(API_ROUTES.recipients.detail(id), body)
       if (res.status >= 200 && res.status < 300) return res.data
+      if (res.status === 400 || res.status === 422) {
+        const { message, validationDetails } = parseApiError(res.data)
+        throw new ApiValidationError(res.status, message, validationDetails)
+      }
       throw new RecipientError(res.status, parseError(res.data))
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),

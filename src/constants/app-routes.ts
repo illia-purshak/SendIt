@@ -36,7 +36,6 @@ export const APP_ROUTES = {
     plans: '/admin/plans',
     support: '/admin/support',
     mySupport: '/admin/support/my',
-    services: '/admin/services',
     billing: '/admin/billing',
     settings: '/admin/settings',
     profile: '/admin/profile',

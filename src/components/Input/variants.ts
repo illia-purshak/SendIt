@@ -9,7 +9,7 @@ const variantBase: Record<InputVariant, string> = {
 }
 
 const colorFocus: Record<UiColor, string> = {
-  green:   'focus:border-green-700',
+  teal:    'focus:border-teal-600',
   neutral: 'focus:border-neutral-600',
   info:    'focus:border-info-600',
   warning: 'focus:border-warning-500',
@@ -18,7 +18,7 @@ const colorFocus: Record<UiColor, string> = {
 }
 
 const colorOutlineBorder: Record<UiColor, string> = {
-  green:   'border-green-200',
+  teal:    'border-teal-300',
   neutral: 'border-neutral-300',
   info:    'border-info-300',
   warning: 'border-warning-300',

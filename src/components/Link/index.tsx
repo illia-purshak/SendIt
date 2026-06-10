@@ -10,9 +10,9 @@ interface LinkProps extends Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'
 }
 
 const variants: Record<Variant, string> = {
-  default: 'text-blue-600 hover:text-blue-800 underline-offset-4 hover:underline',
-  muted: 'text-gray-500 hover:text-gray-800 underline-offset-4 hover:underline',
-  nav: 'text-gray-700 hover:text-gray-900 font-medium',
+  default: 'text-teal-700 hover:text-teal-800 underline-offset-4 hover:underline',
+  muted: 'text-neutral-500 hover:text-neutral-800 underline-offset-4 hover:underline',
+  nav: 'text-neutral-700 hover:text-neutral-900 font-medium',
 }
 
 function isExternalHref(href: string) {

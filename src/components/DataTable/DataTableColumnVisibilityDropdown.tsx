@@ -1,5 +1,6 @@
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu'
 import { Check, Columns3 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { ColumnDef, ColumnVisibilityState } from './types'
 
 interface DataTableColumnVisibilityDropdownProps<TRow> {
@@ -13,6 +14,7 @@ export function DataTableColumnVisibilityDropdown<TRow>({
   columnVisibility,
   onColumnVisibilityChange,
 }: DataTableColumnVisibilityDropdownProps<TRow>) {
+  const { t } = useTranslation()
   const hideableColumns = columns.filter(col => col.hideable !== false)
 
   const isVisible = (id: string) => columnVisibility[id] !== false
@@ -32,7 +34,7 @@ export function DataTableColumnVisibilityDropdown<TRow>({
         ].join(' ')}
       >
         <Columns3 size={15} />
-        Columns
+        {t('dataTable.columns')}
       </DropdownMenuPrimitive.Trigger>
 
       <DropdownMenuPrimitive.Portal>

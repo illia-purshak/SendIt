@@ -10,8 +10,10 @@ import { SettingsCard } from "./components/SettingsCard";
 import { SideNav } from "./components/SideNav";
 import { SubscriptionCard } from "./components/SubscriptionCard";
 import { PAGE_SECTIONS, type PageSectionsIdType } from "@/constants/profile";
+import { useTranslation } from "react-i18next";
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   usePostalConnectionsQuery();
   useMySubscriptionQuery();
 
@@ -42,16 +44,16 @@ export default function ProfilePage() {
         >
           <div className="mb-4 rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-4">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-neutral-400">
-              Profile workspace
+              {t("profile.workspace")}
             </p>
             <h1
               id={`profile-tab-${activeSection}`}
               className="mt-2 text-2xl font-semibold text-neutral-900"
             >
-              {activeSectionMeta.label}
+              {t(activeSectionMeta.labelKey)}
             </h1>
             <p className="mt-1 text-sm text-neutral-500">
-              Use the fixed account menu to switch between profile sections.
+              {t("profile.workspaceDescription")}
             </p>
           </div>
           {activeCard}

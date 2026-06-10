@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { formatDate } from "@/i18n/utils";
 import { useBillingHistoryQuery } from "@/api/billing";
 
 const STATUS_CLASS = {
-  PAID: "bg-green-100 text-green-800",
+  PAID: "bg-teal-100 text-teal-800",
   FAILED: "bg-red-100 text-red-700",
   REFUNDED: "bg-yellow-100 text-yellow-800",
 } as const;
@@ -15,10 +17,11 @@ function planBadgeClass(level: number): string {
 }
 
 function fmt(iso: string) {
-  return iso.slice(0, 10);
+  return formatDate(iso, { year: "numeric", month: "2-digit", day: "2-digit" });
 }
 
 export default function BillingPage() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const { data, isLoading, isError } = useBillingHistoryQuery(page);
 
@@ -29,15 +32,15 @@ export default function BillingPage() {
   return (
     <main className="py-10">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-neutral-900">Billing</h1>
+        <h1 className="text-2xl font-semibold text-neutral-900">{t("billingPage.title")}</h1>
         <p className="mt-1 text-sm text-neutral-500">
-          Subscription payment history.
+          {t("billingPage.subtitle")}
         </p>
       </div>
 
       {isError && (
         <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-          Failed to load billing history. Please try again later.
+          {t("billingPage.failedToLoad")}
         </p>
       )}
 
@@ -45,11 +48,11 @@ export default function BillingPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-neutral-100 bg-neutral-50">
-              <Th>Date</Th>
-              <Th>Period</Th>
-              <Th>Plan</Th>
-              <Th>Amount</Th>
-              <Th>Status</Th>
+              <Th>{t("billingPage.date")}</Th>
+              <Th>{t("billingPage.period")}</Th>
+              <Th>{t("billingPage.plan")}</Th>
+              <Th>{t("billingPage.amount")}</Th>
+              <Th>{t("billingPage.status")}</Th>
             </tr>
           </thead>
           <tbody>
@@ -67,7 +70,7 @@ export default function BillingPage() {
             {!isLoading && data && records.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-12 text-center text-sm text-neutral-400">
-                  No billing records yet.
+                  {t("billingPage.noRecords")}
                 </td>
               </tr>
             )}
@@ -78,7 +81,7 @@ export default function BillingPage() {
                   key={r.id}
                   className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50"
                 >
-                  <td className="px-4 py-3 text-neutral-700">{r.paidAt ? fmt(r.paidAt) : '—'}</td>
+                  <td className="px-4 py-3 text-neutral-700">{r.paidAt ? fmt(r.paidAt) : "—"}</td>
                   <td className="px-4 py-3 text-neutral-500">
                     {fmt(r.periodStart)} — {fmt(r.periodEnd)}
                   </td>
@@ -90,7 +93,7 @@ export default function BillingPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 font-medium text-neutral-900">
-                    {Number(r.amount) > 0 ? `₴${r.amount}` : "Безкоштовно"}
+                    {Number(r.amount) > 0 ? `₴${r.amount}` : t("billingPage.free")}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -111,20 +114,20 @@ export default function BillingPage() {
             type="button"
             disabled={!meta?.hasPreviousPage}
             onClick={() => setPage((p) => p - 1)}
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 transition-colors hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none"
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 transition-colors hover:bg-neutral-50 disabled:pointer-events-none disabled:opacity-40"
           >
-            Previous
+            {t("billingPage.previous")}
           </button>
           <span className="text-sm text-neutral-500">
-            Page {meta?.page ?? page} of {totalPages}
+            {t("billingPage.pageOf", { page: meta?.page ?? page, total: totalPages })}
           </span>
           <button
             type="button"
             disabled={!meta?.hasNextPage}
             onClick={() => setPage((p) => p + 1)}
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 transition-colors hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none"
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 transition-colors hover:bg-neutral-50 disabled:pointer-events-none disabled:opacity-40"
           >
-            Next
+            {t("billingPage.next")}
           </button>
         </div>
       )}

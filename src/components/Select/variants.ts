@@ -9,7 +9,7 @@ const variantBase: Record<SelectVariant, string> = {
 }
 
 const colorOpen: Record<UiColor, string> = {
-  green:   'data-[state=open]:border-green-700',
+  teal:    'data-[state=open]:border-teal-700',
   neutral: 'data-[state=open]:border-neutral-600',
   info:    'data-[state=open]:border-info-600',
   warning: 'data-[state=open]:border-warning-500',
@@ -18,7 +18,7 @@ const colorOpen: Record<UiColor, string> = {
 }
 
 const colorOutlineBorder: Record<UiColor, string> = {
-  green:   'border-green-200',
+  teal:    'border-teal-300',
   neutral: 'border-neutral-300',
   info:    'border-info-300',
   warning: 'border-warning-300',
@@ -36,7 +36,7 @@ export function getSelectTriggerClasses(variant: SelectVariant, color: UiColor, 
 }
 
 export const selectItemHighlight: Record<UiColor, string> = {
-  green:   'data-[highlighted]:bg-green-100   data-[highlighted]:text-green-900',
+  teal:    'data-[highlighted]:bg-teal-50    data-[highlighted]:text-teal-900',
   neutral: 'data-[highlighted]:bg-neutral-100 data-[highlighted]:text-neutral-900',
   info:    'data-[highlighted]:bg-info-100    data-[highlighted]:text-info-900',
   warning: 'data-[highlighted]:bg-warning-100 data-[highlighted]:text-warning-900',

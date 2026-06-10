@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import * as Dialog from '@radix-ui/react-dialog'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/Button'
 import { Input } from '@/components/Input'
 import { Spinner } from '@/components/Loader/Spinner'
@@ -12,6 +13,8 @@ import {
   useUpdateRecipientMutation,
 } from '@/api/recipients'
 import { useToast } from '@/components/Toast/use-toast'
+import { ApiValidationError } from '@/utils/parseApiError'
+import { isValidUaPhone, normalizeUaPhone } from '@/utils/validation'
 import type {
   Recipient,
   RecipientAddress,
@@ -20,115 +23,113 @@ import type {
   RecipientType,
 } from '@/types/recipient'
 
-const RECIPIENT_TYPE_OPTIONS: { value: RecipientType; label: string }[] = [
-  { value: 'INDIVIDUAL', label: 'Individual' },
-  { value: 'ORGANIZATION', label: 'Organization' },
-]
-
-const ADDRESS_TYPE_OPTIONS: { value: RecipientAddressType; label: string }[] = [
-  { value: 'BRANCH', label: 'Branch pickup' },
-  { value: 'STREET', label: 'Street delivery' },
-]
-
-const recipientFormSchema = z
-  .object({
-    type: z.enum(['INDIVIDUAL', 'ORGANIZATION']),
-    firstName: z.string(),
-    lastName: z.string(),
-    patronymic: z.string(),
-    phone: z.string(),
-    email: z.string(),
-    note: z.string(),
-    companyName: z.string(),
-    ownershipForm: z.string(),
-    edrpou: z.string(),
-    addressType: z.enum(['', 'BRANCH', 'STREET']),
-    city: z.string(),
-    branchNumber: z.string(),
-    street: z.string(),
-    building: z.string(),
-    flat: z.string(),
-    postCode: z.string(),
-  })
-  .superRefine((values, ctx) => {
-    if (!values.phone.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['phone'],
-        message: 'Phone is required',
-      })
-    }
-
-    if (values.type === 'INDIVIDUAL') {
-      if (!values.firstName.trim()) {
+function createRecipientFormSchema(t: (key: string) => string) {
+  return z
+    .object({
+      type: z.enum(['INDIVIDUAL', 'ORGANIZATION']),
+      firstName: z.string(),
+      lastName: z.string(),
+      patronymic: z.string(),
+      phone: z.string(),
+      email: z.string(),
+      note: z.string(),
+      companyName: z.string(),
+      ownershipForm: z.string(),
+      edrpou: z.string(),
+      addressType: z.enum(['', 'BRANCH', 'STREET']),
+      city: z.string(),
+      branchNumber: z.string(),
+      street: z.string(),
+      building: z.string(),
+      flat: z.string(),
+      postCode: z.string(),
+    })
+    .superRefine((values, ctx) => {
+      if (!values.phone.trim()) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ['firstName'],
-          message: 'First name is required',
+          path: ['phone'],
+          message: t('recipientForm.validation.phoneRequired'),
         })
-      }
-      if (!values.lastName.trim()) {
+      } else if (!isValidUaPhone(values.phone)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ['lastName'],
-          message: 'Last name is required',
-        })
-      }
-    }
-
-    if (values.type === 'ORGANIZATION' && !values.companyName.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['companyName'],
-        message: 'Company name is required',
-      })
-    }
-
-    if (values.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['email'],
-        message: 'Enter a valid email address',
-      })
-    }
-
-    if (values.addressType) {
-      if (!values.city.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['city'],
-          message: 'City is required',
+          path: ['phone'],
+          message: t('shipmentForm.validation.invalidPhone'),
         })
       }
 
-      if (values.addressType === 'BRANCH' && !values.branchNumber.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['branchNumber'],
-          message: 'Branch number is required',
-        })
-      }
-
-      if (values.addressType === 'STREET') {
-        if (!values.street.trim()) {
+      if (values.type === 'INDIVIDUAL') {
+        if (!values.firstName.trim()) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ['street'],
-            message: 'Street is required',
+            path: ['firstName'],
+            message: t('recipientForm.validation.firstNameRequired'),
           })
         }
-        if (!values.building.trim()) {
+        if (!values.lastName.trim()) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ['building'],
-            message: 'Building is required',
+            path: ['lastName'],
+            message: t('recipientForm.validation.lastNameRequired'),
           })
         }
       }
-    }
-  })
 
-type RecipientFormValues = z.infer<typeof recipientFormSchema>
+      if (values.type === 'ORGANIZATION' && !values.companyName.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['companyName'],
+          message: t('recipientForm.validation.companyNameRequired'),
+        })
+      }
+
+      if (values.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['email'],
+          message: t('recipientForm.validation.validEmail'),
+        })
+      }
+
+      if (values.addressType) {
+        if (!values.city.trim()) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['city'],
+            message: t('recipientForm.validation.cityRequired'),
+          })
+        }
+
+        if (values.addressType === 'BRANCH' && !values.branchNumber.trim()) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['branchNumber'],
+            message: t('recipientForm.validation.branchNumberRequired'),
+          })
+        }
+
+        if (values.addressType === 'STREET') {
+          if (!values.street.trim()) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['street'],
+              message: t('recipientForm.validation.streetRequired'),
+            })
+          }
+          if (!values.building.trim()) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['building'],
+              message: t('recipientForm.validation.buildingRequired'),
+            })
+          }
+        }
+      }
+    })
+}
+
+type RecipientFormValues = z.infer<ReturnType<typeof createRecipientFormSchema>>
 
 const EMPTY_VALUES: RecipientFormValues = {
   type: 'INDIVIDUAL',
@@ -162,7 +163,7 @@ function toFormValues(recipient: Recipient): RecipientFormValues {
     firstName: recipient.firstName ?? '',
     lastName: recipient.lastName ?? '',
     patronymic: recipient.patronymic ?? '',
-    phone: recipient.phone ?? '',
+    phone: recipient.phone ? normalizeUaPhone(recipient.phone) : '',
     email: recipient.email ?? '',
     note: recipient.note ?? '',
     companyName: recipient.companyName ?? '',
@@ -210,7 +211,7 @@ function buildBody(values: RecipientFormValues): RecipientBody {
     firstName: trimToNull(values.firstName),
     lastName: trimToNull(values.lastName),
     patronymic: trimToNull(values.patronymic),
-    phone: values.phone.trim(),
+    phone: normalizeUaPhone(values.phone),
     email: trimToNull(values.email),
     note: trimToNull(values.note),
     companyName: trimToNull(values.companyName),
@@ -221,9 +222,9 @@ function buildBody(values: RecipientFormValues): RecipientBody {
 }
 
 export function RecipientFormModal({ open, recipientId, onClose }: RecipientFormModalProps) {
+  const { t } = useTranslation()
   const { toast } = useToast()
   const isEdit = recipientId != null
-  const [apiError, setApiError] = useState<string | null>(null)
   const {
     data: recipient,
     isLoading,
@@ -232,8 +233,18 @@ export function RecipientFormModal({ open, recipientId, onClose }: RecipientForm
   const { mutateAsync: createRecipient, isPending: isCreating } = useCreateRecipientMutation()
   const { mutateAsync: updateRecipient, isPending: isUpdating } = useUpdateRecipientMutation()
 
+  const recipientTypeOptions: { value: RecipientType; label: string }[] = [
+    { value: 'INDIVIDUAL', label: t('recipientForm.recipientType.individual') },
+    { value: 'ORGANIZATION', label: t('recipientForm.recipientType.organization') },
+  ]
+
+  const addressTypeOptions: { value: RecipientAddressType; label: string }[] = [
+    { value: 'BRANCH', label: t('recipientForm.addressType.branch') },
+    { value: 'STREET', label: t('recipientForm.addressType.street') },
+  ]
+
   const form = useForm<RecipientFormValues>({
-    resolver: zodResolver(recipientFormSchema),
+    resolver: zodResolver(createRecipientFormSchema(t)),
     defaultValues: EMPTY_VALUES,
   })
 
@@ -243,7 +254,6 @@ export function RecipientFormModal({ open, recipientId, onClose }: RecipientForm
 
   useEffect(() => {
     if (!open) return
-    setApiError(null)
     if (!isEdit) {
       form.reset(EMPTY_VALUES)
     }
@@ -254,28 +264,29 @@ export function RecipientFormModal({ open, recipientId, onClose }: RecipientForm
     form.reset(toFormValues(recipient))
   }, [form, open, recipient])
 
-  const title = useMemo(() => (isEdit ? 'Edit recipient' : 'Add recipient'), [isEdit])
+  const title = useMemo(() => (isEdit ? t('recipientForm.editTitle') : t('recipientForm.addTitle')), [isEdit, t])
 
   function handleClose() {
     form.reset(EMPTY_VALUES)
-    setApiError(null)
     onClose()
   }
 
   async function onSubmit(values: RecipientFormValues) {
-    setApiError(null)
-
     try {
       if (isEdit && recipientId != null) {
         await updateRecipient({ id: recipientId, body: buildBody(values) })
-        toast({ title: 'Recipient updated', color: 'success' })
+        toast({ title: t('recipientForm.updated'), color: 'success' })
       } else {
         await createRecipient(buildBody(values))
-        toast({ title: 'Recipient created', color: 'success' })
+        toast({ title: t('recipientForm.created'), color: 'success' })
       }
       handleClose()
     } catch (error) {
-      setApiError(error instanceof Error ? error.message : 'Failed to save recipient')
+      if (error instanceof ApiValidationError && error.validationDetails.length > 0) {
+        toast({ title: error.message, description: error.validationDetails.join('\n'), color: 'error' })
+      } else {
+        toast({ title: error instanceof Error ? error.message : t('recipientForm.failedToSave'), color: 'error' })
+      }
     }
   }
 
@@ -300,7 +311,7 @@ export function RecipientFormModal({ open, recipientId, onClose }: RecipientForm
             {title}
           </Dialog.Title>
           <Dialog.Description className="mb-5 text-sm text-neutral-500">
-            Save recipient details and delivery data to reuse them in shipment creation.
+            {t('recipientForm.description')}
           </Dialog.Description>
 
           {isEdit && isLoading ? (
@@ -309,20 +320,20 @@ export function RecipientFormModal({ open, recipientId, onClose }: RecipientForm
             </div>
           ) : isEdit && loadError ? (
             <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {loadError instanceof Error ? loadError.message : 'Failed to load recipient'}
+              {loadError instanceof Error ? loadError.message : t('recipientForm.failedToLoad')}
             </div>
           ) : (
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-5">
               <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-                    Recipient type
+                    {t('recipientForm.fields.recipientType')}
                   </label>
                   <select
                     {...form.register('type')}
-                    className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                    className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                   >
-                    {RECIPIENT_TYPE_OPTIONS.map((option) => (
+                    {recipientTypeOptions.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
@@ -333,17 +344,17 @@ export function RecipientFormModal({ open, recipientId, onClose }: RecipientForm
                 {recipientType === 'INDIVIDUAL' ? (
                   <>
                     <Input
-                      label="First name"
+                      label={t('recipientForm.fields.firstName')}
                       {...form.register('firstName')}
                       error={form.formState.errors.firstName?.message}
                     />
                     <Input
-                      label="Last name"
+                      label={t('recipientForm.fields.lastName')}
                       {...form.register('lastName')}
                       error={form.formState.errors.lastName?.message}
                     />
                     <Input
-                      label="Patronymic"
+                      label={t('recipientForm.fields.patronymic')}
                       {...form.register('patronymic')}
                       error={form.formState.errors.patronymic?.message}
                     />
@@ -352,33 +363,33 @@ export function RecipientFormModal({ open, recipientId, onClose }: RecipientForm
                   <>
                     <div className="sm:col-span-2">
                       <Input
-                        label="Company name"
+                        label={t('recipientForm.fields.companyName')}
                         {...form.register('companyName')}
                         error={form.formState.errors.companyName?.message}
                       />
                     </div>
                     <Input
-                      label="Ownership form"
+                      label={t('recipientForm.fields.ownershipForm')}
                       {...form.register('ownershipForm')}
                       error={form.formState.errors.ownershipForm?.message}
                     />
                     <Input
-                      label="EDRPOU"
+                      label={t('recipientForm.fields.edrpou')}
                       {...form.register('edrpou')}
                       error={form.formState.errors.edrpou?.message}
                     />
                     <Input
-                      label="Contact first name"
+                      label={t('recipientForm.fields.contactFirstName')}
                       {...form.register('firstName')}
                       error={form.formState.errors.firstName?.message}
                     />
                     <Input
-                      label="Contact last name"
+                      label={t('recipientForm.fields.contactLastName')}
                       {...form.register('lastName')}
                       error={form.formState.errors.lastName?.message}
                     />
                     <Input
-                      label="Contact patronymic"
+                      label={t('recipientForm.fields.contactPatronymic')}
                       {...form.register('patronymic')}
                       error={form.formState.errors.patronymic?.message}
                     />
@@ -386,12 +397,12 @@ export function RecipientFormModal({ open, recipientId, onClose }: RecipientForm
                 )}
 
                 <Input
-                  label="Phone"
+                  label={t('recipientForm.fields.phone')}
                   {...form.register('phone')}
                   error={form.formState.errors.phone?.message}
                 />
                 <Input
-                  label="Email"
+                  label={t('recipientForm.fields.email')}
                   {...form.register('email')}
                   error={form.formState.errors.email?.message}
                 />
@@ -400,13 +411,13 @@ export function RecipientFormModal({ open, recipientId, onClose }: RecipientForm
               <section className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-                    Note
+                    {t('recipientForm.fields.note')}
                   </label>
                   <textarea
                     {...form.register('note')}
                     rows={3}
-                    placeholder="Optional delivery note"
-                    className="w-full resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                    placeholder={t('recipientForm.placeholders.note')}
+                    className="w-full resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                   />
                 </div>
               </section>
@@ -414,14 +425,14 @@ export function RecipientFormModal({ open, recipientId, onClose }: RecipientForm
               <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-                    Saved address
+                    {t('recipientForm.fields.savedAddress')}
                   </label>
                   <select
                     {...form.register('addressType')}
-                    className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                    className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                   >
-                    <option value="">No saved address</option>
-                    {ADDRESS_TYPE_OPTIONS.map((option) => (
+                    <option value="">{t('recipientForm.addressType.none')}</option>
+                    {addressTypeOptions.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
@@ -432,36 +443,36 @@ export function RecipientFormModal({ open, recipientId, onClose }: RecipientForm
                 {addressType ? (
                   <>
                     <Input
-                      label="City"
+                      label={t('recipientForm.fields.city')}
                       {...form.register('city')}
                       error={form.formState.errors.city?.message}
                     />
 
                     {addressType === 'BRANCH' ? (
                       <Input
-                        label="Branch number"
+                        label={t('recipientForm.fields.branchNumber')}
                         {...form.register('branchNumber')}
                         error={form.formState.errors.branchNumber?.message}
                       />
                     ) : (
                       <>
                         <Input
-                          label="Street"
+                          label={t('recipientForm.fields.street')}
                           {...form.register('street')}
                           error={form.formState.errors.street?.message}
                         />
                         <Input
-                          label="Building"
+                          label={t('recipientForm.fields.building')}
                           {...form.register('building')}
                           error={form.formState.errors.building?.message}
                         />
                         <Input
-                          label="Flat"
+                          label={t('recipientForm.fields.flat')}
                           {...form.register('flat')}
                           error={form.formState.errors.flat?.message}
                         />
                         <Input
-                          label="Post code"
+                          label={t('recipientForm.fields.postCode')}
                           {...form.register('postCode')}
                           error={form.formState.errors.postCode?.message}
                         />
@@ -471,8 +482,6 @@ export function RecipientFormModal({ open, recipientId, onClose }: RecipientForm
                 ) : null}
               </section>
 
-              {apiError ? <p className="text-sm text-red-600">{apiError}</p> : null}
-
               <div className="flex justify-end gap-3">
                 <Button
                   type="button"
@@ -481,10 +490,10 @@ export function RecipientFormModal({ open, recipientId, onClose }: RecipientForm
                   onClick={handleClose}
                   disabled={isPending}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
-                <Button type="submit" color="green" disabled={isPending}>
-                  {isPending ? 'Saving...' : isEdit ? 'Save changes' : 'Create recipient'}
+                <Button type="submit" color="teal" disabled={isPending}>
+                  {isPending ? t('recipientForm.saving') : isEdit ? t('recipientForm.saveChanges') : t('recipientForm.create')}
                 </Button>
               </div>
             </form>

@@ -1,4 +1,4 @@
-import { Eye, Lock, Unlock } from "lucide-react";
+﻿import { Eye, Lock, Unlock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { APP_ROUTES } from "@/constants/app-routes";
 import { IconButton } from "@/components/IconButton";
@@ -7,7 +7,7 @@ import { useAdminUsersQuery, useAdminUpdateUserStatusMutation } from "@/api/admi
 import { toastStore } from "@/store/toastStore";
 
 const STATUS_CLASS: Record<string, string> = {
-  ACTIVE: "bg-green-100 text-green-800",
+  ACTIVE: "bg-teal-100 text-teal-800",
   INACTIVE: "bg-neutral-100 text-neutral-500",
   BANNED: "bg-red-100 text-red-700",
   DELETED: "bg-neutral-100 text-neutral-400",

@@ -12,6 +12,7 @@ import {
   useEnable2faMutation,
   useDisable2faMutation,
 } from "@/api/auth";
+import { t } from "@/i18n/utils";
 import { AuthContext, type AuthContextValue } from "./auth-context";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -42,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         return error instanceof Error
           ? error.message
-          : "An unexpected error occurred";
+          : t("errors.unexpected");
       }
     },
 
@@ -53,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         return error instanceof Error
           ? error.message
-          : "An unexpected error occurred";
+          : t("errors.unexpected");
       }
     },
 
@@ -64,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         return error instanceof Error
           ? error.message
-          : "An unexpected error occurred";
+          : t("errors.unexpected");
       }
     },
 
@@ -77,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         return error instanceof Error
           ? error.message
-          : "An unexpected error occurred";
+          : t("errors.unexpected");
       }
     },
 
@@ -88,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         return error instanceof Error
           ? error.message
-          : "An unexpected error occurred";
+          : t("errors.unexpected");
       }
     },
 
@@ -99,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         return error instanceof Error
           ? error.message
-          : "An unexpected error occurred";
+          : t("errors.unexpected");
       }
     },
 
@@ -109,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         return error instanceof Error
           ? error.message
-          : "An unexpected error occurred";
+          : t("errors.unexpected");
       }
     },
 
@@ -120,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         return error instanceof Error
           ? error.message
-          : "An unexpected error occurred";
+          : t("errors.unexpected");
       }
     },
 
@@ -131,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         return error instanceof Error
           ? error.message
-          : "An unexpected error occurred";
+          : t("errors.unexpected");
       }
     },
   };

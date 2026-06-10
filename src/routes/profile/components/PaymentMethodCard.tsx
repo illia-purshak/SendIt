@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   CardAlreadyExistsError,
   useCardQuery,
@@ -6,10 +7,10 @@ import {
   useSaveCardMutation,
   useUpdateCardMutation,
 } from "@/api/billing";
+import { useMySubscriptionQuery } from "@/api/subscriptions";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { useToast } from "@/components/Toast/use-toast";
-import { useMySubscriptionQuery } from "@/api/subscriptions";
 
 type CardFormValues = {
   cardNumber: string;
@@ -26,6 +27,7 @@ const EMPTY_FORM_VALUES: CardFormValues = {
 };
 
 export function PaymentMethodCard() {
+  const { t } = useTranslation();
   const [showForm, setShowForm] = useState(false);
   const { data: card, isLoading } = useCardQuery();
   const {
@@ -87,7 +89,7 @@ export function PaymentMethodCard() {
       !cardholderName
     ) {
       toast({
-        title: "Please fill in all card fields correctly",
+        title: t("profile.cardValidation"),
         color: "warning",
       });
       return;
@@ -114,32 +116,37 @@ export function PaymentMethodCard() {
         }
       }
 
-      toast({ title: "Card saved", color: "success" });
+      toast({ title: t("profile.cardSaved"), color: "success" });
       closeForm();
     } catch {
-      toast({ title: "Failed to save card", color: "error" });
+      toast({ title: t("profile.cardSaveFailed"), color: "error" });
     }
   }
 
   async function handleDelete() {
     try {
       await deleteCard();
-      toast({ title: "Card removed", color: "success" });
+      toast({ title: t("profile.cardRemoved"), color: "success" });
       closeForm();
     } catch {
-      toast({ title: "Failed to remove card", color: "error" });
+      toast({ title: t("profile.cardRemoveFailed"), color: "error" });
     }
   }
 
-  const activeBalance = subscription?.find(b => b.status === 'ACTIVE')
+  const activeBalance = subscription?.find((balance) => balance.status === "ACTIVE");
   const isFreePlan = (activeBalance?.plan.level ?? 0) === 0;
   const isSaving = savePending || updatePending;
 
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-4 text-lg font-semibold text-neutral-900">
-        Payment method
-      </h2>
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-neutral-900">
+          {t("profile.paymentMethodTitle")}
+        </h2>
+        <p className="mt-1 text-sm text-neutral-500">
+          {t("profile.paymentMethodSubtitle")}
+        </p>
+      </div>
 
       {card ? (
         <div className="flex items-center justify-between">
@@ -148,7 +155,7 @@ export function PaymentMethodCard() {
               {card.maskedNumber}
             </p>
             <p className="mt-0.5 text-xs text-neutral-400">
-              Expires {String(card.expiryMonth).padStart(2, "0")}/
+              {t("profile.expires")} {String(card.expiryMonth).padStart(2, "0")}/
               {card.expiryYear}
             </p>
           </div>
@@ -159,7 +166,7 @@ export function PaymentMethodCard() {
               color="neutral"
               onClick={openEditForm}
             >
-              Edit card
+              {t("profile.editCard")}
             </Button>
             <Button
               size="sm"
@@ -168,7 +175,7 @@ export function PaymentMethodCard() {
               disabled={deletePending}
               onClick={handleDelete}
             >
-              Delete
+              {t("profile.delete")}
             </Button>
           </div>
         </div>
@@ -176,12 +183,12 @@ export function PaymentMethodCard() {
         <div>
           {isFreePlan && !showForm && (
             <p className="mb-3 text-sm text-neutral-500">
-              Add a card before switching to a paid plan.
+              {t("profile.addCardBeforePaid")}
             </p>
           )}
           {!showForm && (
-            <Button size="sm" color="green" onClick={openCreateForm}>
-              Save card
+            <Button size="sm" color="teal" onClick={openCreateForm}>
+              {t("profile.saveCard")}
             </Button>
           )}
         </div>
@@ -191,11 +198,11 @@ export function PaymentMethodCard() {
         <div className="mt-4 flex flex-col gap-3">
           {card && (
             <p className="text-sm text-neutral-500">
-              Enter the full replacement card details to update the saved card.
+              {t("profile.replaceCardPrompt")}
             </p>
           )}
           <Input
-            label="Card number"
+            label={t("profile.cardNumber")}
             placeholder="4242 4242 4242 4242"
             inputMode="numeric"
             autoComplete="cc-number"
@@ -207,10 +214,10 @@ export function PaymentMethodCard() {
                 cardNumber: event.target.value.replace(/[^\d\s]/g, ""),
               }))
             }
-            color="green"
+            color="teal"
           />
           <Input
-            label="Cardholder name"
+            label={t("profile.cardholderName")}
             placeholder="JOHN DOE"
             autoComplete="cc-name"
             value={formValues.cardholderName}
@@ -220,11 +227,11 @@ export function PaymentMethodCard() {
                 cardholderName: event.target.value,
               }))
             }
-            color="green"
+            color="teal"
           />
           <div className="flex gap-3">
             <Input
-              label="Expiry month (MM)"
+              label={t("profile.expiryMonth")}
               placeholder="12"
               inputMode="numeric"
               maxLength={2}
@@ -235,10 +242,10 @@ export function PaymentMethodCard() {
                   expiryMonth: event.target.value.replace(/\D/g, ""),
                 }))
               }
-              color="green"
+              color="teal"
             />
             <Input
-              label="Expiry year (YYYY)"
+              label={t("profile.expiryYear")}
               placeholder="2028"
               inputMode="numeric"
               maxLength={4}
@@ -249,19 +256,19 @@ export function PaymentMethodCard() {
                   expiryYear: event.target.value.replace(/\D/g, ""),
                 }))
               }
-              color="green"
+              color="teal"
             />
           </div>
           <div className="flex gap-2">
-            <Button color="green" disabled={isSaving} onClick={handleSave}>
-              {isSaving ? "Saving..." : card ? "Update card" : "Save card"}
+            <Button color="teal" disabled={isSaving} onClick={handleSave}>
+              {isSaving
+                ? t("common.saving")
+                : card
+                  ? t("profile.updateCard")
+                  : t("profile.saveCard")}
             </Button>
-            <Button
-              variant="outline"
-              color="neutral"
-              onClick={closeForm}
-            >
-              Cancel
+            <Button variant="outline" color="neutral" onClick={closeForm}>
+              {t("common.cancel")}
             </Button>
           </div>
         </div>

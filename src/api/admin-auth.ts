@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { adminApiClient, parseAdminError } from '@/api/adminApiClient'
+import { parseApiError, ApiValidationError } from '@/utils/parseApiError'
 import { adminTokenStore } from '@/store/adminTokenStore'
 import { API_ROUTES } from '@/constants/api-routes'
 
@@ -34,7 +35,13 @@ export function useAdminLoginMutation() {
         { email, password, ...(totpCode ? { totpCode } : {}) },
       )
 
-      if (res.status < 200 || res.status >= 300) throw new Error(parseAdminError(res.data))
+      if (res.status < 200 || res.status >= 300) {
+        if (res.status === 400 || res.status === 422) {
+          const { validationDetails } = parseApiError(res.data)
+          throw new ApiValidationError(res.status, parseAdminError(res.data), validationDetails)
+        }
+        throw new Error(parseAdminError(res.data))
+      }
 
       const data = res.data
       if (isSetupRequired(data)) {
@@ -98,7 +105,13 @@ export function useAdminSetPasswordMutation() {
   return useMutation({
     mutationFn: async ({ token, password }: { token: string; password: string }) => {
       const res = await adminApiClient.post(API_ROUTES.adminAuth.setPassword, { token, password })
-      if (res.status < 200 || res.status >= 300) throw new Error(parseAdminError(res.data))
+      if (res.status < 200 || res.status >= 300) {
+        if (res.status === 400 || res.status === 422) {
+          const { validationDetails } = parseApiError(res.data)
+          throw new ApiValidationError(res.status, parseAdminError(res.data), validationDetails)
+        }
+        throw new Error(parseAdminError(res.data))
+      }
     },
   })
 }

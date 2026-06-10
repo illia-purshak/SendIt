@@ -1,20 +1,10 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, MapPin } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { APP_ROUTES } from "@/constants/app-routes";
 import { useShipmentDetailQuery } from "@/api/shipments";
 import { Spinner } from "@/components/Loader/Spinner";
 import type { ShipmentStatus } from "@/types/shipment";
-
-const STATUS_LABEL: Record<ShipmentStatus, string> = {
-  DRAFT: "Draft",
-  CREATED: "Created",
-  PREPARING: "Preparing",
-  IN_TRANSIT: "In transit",
-  DELIVERED: "Delivered",
-  CANCELLED: "Cancelled",
-  RETURNED: "Returned",
-  UNKNOWN: "Unknown",
-};
 
 const STATUS_CLASS: Record<ShipmentStatus, string> = {
   DRAFT: "bg-neutral-100 text-neutral-600 ring-neutral-200",
@@ -27,13 +17,21 @@ const STATUS_CLASS: Record<ShipmentStatus, string> = {
   UNKNOWN: "bg-neutral-100 text-neutral-400 ring-neutral-200",
 };
 
-function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
+function InfoRow({
+  label,
+  value,
+  emptyValue,
+}: {
+  label: string;
+  value: React.ReactNode;
+  emptyValue: string;
+}) {
   return (
     <div className="space-y-1">
       <dt className="text-xs font-medium tracking-wide text-neutral-400 uppercase">
         {label}
       </dt>
-      <dd className="text-sm font-medium text-neutral-800">{value ?? "—"}</dd>
+      <dd className="text-sm font-medium text-neutral-800">{value ?? emptyValue}</dd>
     </div>
   );
 }
@@ -47,8 +45,20 @@ function SectionCard({ children }: { children: React.ReactNode }) {
 }
 
 export default function ShipmentDetailView() {
+  const { t } = useTranslation();
   const { operator, ref } = useParams<{ operator: string; ref: string }>();
   const navigate = useNavigate();
+
+  const statusLabel: Record<ShipmentStatus, string> = {
+    DRAFT: t("shipmentsPage.status.draft"),
+    CREATED: t("shipmentsPage.status.created"),
+    PREPARING: t("shipmentsPage.status.preparing"),
+    IN_TRANSIT: t("shipmentsPage.status.inTransit"),
+    DELIVERED: t("shipmentsPage.status.delivered"),
+    CANCELLED: t("shipmentsPage.status.cancelled"),
+    RETURNED: t("shipmentsPage.status.returned"),
+    UNKNOWN: t("shipmentsPage.status.unknown"),
+  };
 
   const { data, isLoading, error } = useShipmentDetailQuery(
     operator ?? "",
@@ -66,10 +76,13 @@ export default function ShipmentDetailView() {
   if (error || !data) {
     return (
       <main className="mx-auto max-w-3xl px-6 py-10">
-        <BackButton onClick={() => navigate(APP_ROUTES.shipments)} />
+        <BackButton
+          label={t("shipmentDetailPage.backToShipments")}
+          onClick={() => navigate(APP_ROUTES.shipments)}
+        />
         <div className="mt-6 rounded-2xl border border-red-100 bg-red-50 px-5 py-4">
           <p className="text-sm font-medium text-red-600">
-            Failed to load shipment details.
+            {t("shipmentDetailPage.failedToLoad")}
           </p>
         </div>
       </main>
@@ -81,16 +94,18 @@ export default function ShipmentDetailView() {
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
-      <BackButton onClick={() => navigate(APP_ROUTES.shipments)} />
+      <BackButton
+        label={t("shipmentDetailPage.backToShipments")}
+        onClick={() => navigate(APP_ROUTES.shipments)}
+      />
 
-      {/* Header */}
       <div className="mt-6 mb-8 flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-neutral-100 bg-white p-6 shadow-xs">
         <div>
           <p className="mb-1.5 text-xs font-medium tracking-wide text-neutral-400 uppercase">
-            Tracking number
+            {t("shipmentDetailPage.trackingNumber")}
           </p>
           <p className="font-mono text-2xl font-semibold tracking-tight text-neutral-900">
-            {data.ttn ?? "—"}
+            {data.ttn ?? t("shipmentsPage.dash")}
           </p>
           <p className="mt-1.5 text-sm text-neutral-500">{data.operatorName}</p>
         </div>
@@ -100,63 +115,61 @@ export default function ShipmentDetailView() {
             STATUS_CLASS[data.normalizedStatus],
           ].join(" ")}
         >
-          {STATUS_LABEL[data.normalizedStatus]}
+          {statusLabel[data.normalizedStatus]}
         </span>
       </div>
 
-      {/* Details */}
       <div className="space-y-6">
-        {/* Recipient */}
-        <Section title="Recipient">
+        <Section title={t("shipmentDetailPage.sections.recipient")}>
           <SectionCard>
-            <InfoRow label="Name" value={data.recipientName} />
-            <InfoRow label="Phone" value={data.recipientPhone} />
-            <InfoRow label="Email" value={data.recipientEmail} />
-            <InfoRow label="Delivery address" value={data.deliveryAddress} />
+            <InfoRow label={t("shipmentDetailPage.fields.name")} value={data.recipientName} emptyValue={t("shipmentsPage.dash")} />
+            <InfoRow label={t("shipmentDetailPage.fields.phone")} value={data.recipientPhone} emptyValue={t("shipmentsPage.dash")} />
+            <InfoRow label={t("shipmentDetailPage.fields.email")} value={data.recipientEmail} emptyValue={t("shipmentsPage.dash")} />
+            <InfoRow label={t("shipmentDetailPage.fields.deliveryAddress")} value={data.deliveryAddress} emptyValue={t("shipmentsPage.dash")} />
           </SectionCard>
         </Section>
 
-        {/* Parcel */}
-        <Section title="Parcel">
+        <Section title={t("shipmentDetailPage.sections.parcel")}>
           <SectionCard>
             <InfoRow
-              label="Weight"
-              value={data.weight != null ? `${data.weight} kg` : null}
+              label={t("shipmentDetailPage.fields.weight")}
+              value={data.weight != null ? t("shipmentDetailPage.weightValue", { value: data.weight }) : null}
+              emptyValue={t("shipmentsPage.dash")}
             />
             <InfoRow
-              label="Declared value"
+              label={t("shipmentDetailPage.fields.declaredValue")}
               value={
-                data.declaredValue != null ? `₴${data.declaredValue}` : null
+                data.declaredValue != null ? t("shipmentDetailPage.declaredValueValue", { value: data.declaredValue }) : null
               }
+              emptyValue={t("shipmentsPage.dash")}
             />
-            <InfoRow label="Raw status" value={data.rawStatus} />
+            <InfoRow label={t("shipmentDetailPage.fields.rawStatus")} value={data.rawStatus} emptyValue={t("shipmentsPage.dash")} />
           </SectionCard>
         </Section>
 
-        {/* Timestamps */}
-        <Section title="Dates">
+        <Section title={t("shipmentDetailPage.sections.dates")}>
           <SectionCard>
-            <InfoRow label="Created" value={formatDate(data.createdAt)} />
+            <InfoRow label={t("shipmentDetailPage.fields.created")} value={formatDate(data.createdAt)} emptyValue={t("shipmentsPage.dash")} />
             <InfoRow
-              label="Last synced"
+              label={t("shipmentDetailPage.fields.lastSynced")}
               value={formatDate(data.lastSyncedAt)}
+              emptyValue={t("shipmentsPage.dash")}
             />
             {data.scheduledDeliveryDate && (
               <InfoRow
-                label="Est. delivery"
+                label={t("shipmentDetailPage.fields.estimatedDelivery")}
                 value={formatDate(data.scheduledDeliveryDate)}
+                emptyValue={t("shipmentsPage.dash")}
               />
             )}
           </SectionCard>
         </Section>
 
-        {/* Tracking history */}
         {data.trackingHistory.length > 0 && (
-          <Section title="Tracking history">
+          <Section title={t("shipmentDetailPage.sections.trackingHistory")}>
             <ol className="relative space-y-0">
               {data.trackingHistory.map((item, i) => (
                 <li key={i} className="relative flex gap-4 pb-4 last:pb-0">
-                  {/* Connector line */}
                   {i < data.trackingHistory.length - 1 && (
                     <span
                       aria-hidden
@@ -164,7 +177,6 @@ export default function ShipmentDetailView() {
                     />
                   )}
 
-                  {/* Dot */}
                   <span
                     className={[
                       "relative z-10 mt-0.5 flex size-4.5 shrink-0 items-center justify-center rounded-full ring-2 ring-white",
@@ -172,7 +184,6 @@ export default function ShipmentDetailView() {
                     ].join(" ")}
                   />
 
-                  {/* Content */}
                   <div className="flex min-w-0 flex-1 items-start justify-between gap-4 rounded-2xl border border-neutral-100 bg-white px-5 py-4 shadow-xs">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-neutral-900">
@@ -197,7 +208,7 @@ export default function ShipmentDetailView() {
   );
 }
 
-function BackButton({ onClick }: { onClick: () => void }) {
+function BackButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -205,7 +216,7 @@ function BackButton({ onClick }: { onClick: () => void }) {
       className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800"
     >
       <ArrowLeft size={15} />
-      Back to shipments
+      {label}
     </button>
   );
 }

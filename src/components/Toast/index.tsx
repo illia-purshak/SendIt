@@ -1,4 +1,4 @@
-import * as RadixToast from "@radix-ui/react-toast";
+﻿import * as RadixToast from "@radix-ui/react-toast";
 import { useEffect, useState, type ReactNode } from "react";
 import type { UiColor } from "../ui.config";
 import { toastStore } from "@/store/toastStore";
@@ -13,7 +13,7 @@ interface ToastItem {
 }
 
 const colorBar: Record<UiColor, string> = {
-  green: "bg-green-700",
+  teal: "bg-teal-700",
   neutral: "bg-neutral-900",
   info: "bg-info-600",
   warning: "bg-warning-500",
@@ -66,7 +66,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 {t.title}
               </RadixToast.Title>
               {t.description && (
-                <RadixToast.Description className="mt-0.5 text-sm text-neutral-600">
+                <RadixToast.Description className="mt-0.5 text-sm text-neutral-600 whitespace-pre-line">
                   {t.description}
                 </RadixToast.Description>
               )}

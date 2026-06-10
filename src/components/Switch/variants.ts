@@ -9,7 +9,7 @@ export const switchSizes: Record<SwitchSize, { root: string; thumb: string }> = 
 }
 
 export const switchColors: Record<UiColor, { on: string; focus: string }> = {
-  green:   { on: 'data-[state=checked]:bg-green-700',   focus: 'focus-visible:ring-green-700' },
+  teal:    { on: 'data-[state=checked]:bg-teal-700',    focus: 'focus-visible:ring-teal-700' },
   neutral: { on: 'data-[state=checked]:bg-neutral-900', focus: 'focus-visible:ring-neutral-600' },
   info:    { on: 'data-[state=checked]:bg-info-600',    focus: 'focus-visible:ring-info-600' },
   warning: { on: 'data-[state=checked]:bg-warning-500', focus: 'focus-visible:ring-warning-500' },

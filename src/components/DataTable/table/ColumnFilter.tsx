@@ -1,4 +1,4 @@
-import { useDataTableCtx } from '../context'
+﻿import { useDataTableCtx } from '../context'
 import type { ColumnRenderInfo } from '../types'
 
 interface ColumnFilterProps {
@@ -8,7 +8,7 @@ interface ColumnFilterProps {
 const inputClasses = [
   'h-8 w-full rounded border border-neutral-200 bg-white px-2 text-xs text-neutral-700',
   'placeholder:text-neutral-300',
-  'focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-0',
+  'focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-0',
   'transition-colors',
 ].join(' ')
 

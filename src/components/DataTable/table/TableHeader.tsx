@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, ChevronsUpDown } from 'lucide-react'
+﻿import { ChevronDown, ChevronUp, ChevronsUpDown } from 'lucide-react'
 import type { KeyboardEvent } from 'react'
 import { useDataTableCtx } from '../context'
 
@@ -28,7 +28,7 @@ export function TableHeader() {
                 col.sortable && [
                   'cursor-pointer select-none',
                   'hover:bg-neutral-100 hover:text-neutral-700',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-green-500',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-500',
                 ].join(' '),
               ].filter(Boolean).join(' ')}
               style={{ width: col.width, minWidth: col.minWidth }}

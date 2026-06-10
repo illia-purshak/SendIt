@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Button } from "@/components/Button";
 import { useBuySubscriptionMutation, SubscriptionError } from "@/api/subscriptions";
+import { Button } from "@/components/Button";
 import { useToast } from "@/components/Toast/use-toast";
 import type { SubscriptionPlan, UserSubscriptionBalance } from "@/types/subscription";
 
@@ -22,6 +23,7 @@ interface ChangePlanModalProps {
 type Step = "select" | "activation" | "confirm";
 
 export function ChangePlanModal({ open, onClose, balances, plans }: ChangePlanModalProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>("select");
   const [selected, setSelected] = useState<SubscriptionPlan | null>(null);
   const [activateNow, setActivateNow] = useState(false);
@@ -29,7 +31,7 @@ export function ChangePlanModal({ open, onClose, balances, plans }: ChangePlanMo
   const { mutateAsync: buySubscription, isPending } = useBuySubscriptionMutation();
 
   const activePaidBalance = balances.find(
-    (b) => b.status === "ACTIVE" && b.plan.level > 0
+    (balance) => balance.status === "ACTIVE" && balance.plan.level > 0,
   );
 
   function handleSelect(plan: SubscriptionPlan) {
@@ -51,14 +53,14 @@ export function ChangePlanModal({ open, onClose, balances, plans }: ChangePlanMo
         ...(activePaidBalance && selected.level > 0 ? { activateNow } : {}),
       });
       toast({
-        title: `Subscribed to ${selected.name}`,
+        title: t("profile.planSubscribed", { name: selected.name }),
         color: "success",
       });
       handleClose();
     } catch (err) {
       const msg =
-        err instanceof SubscriptionError ? err.message : "Something went wrong";
-      toast({ title: "Error", description: msg, color: "error" });
+        err instanceof SubscriptionError ? err.message : t("profile.somethingWentWrong");
+      toast({ title: t("common.error"), description: msg, color: "error" });
     }
   }
 
@@ -70,7 +72,7 @@ export function ChangePlanModal({ open, onClose, balances, plans }: ChangePlanMo
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={(v) => !v && handleClose()}>
+    <Dialog.Root open={open} onOpenChange={(nextOpen) => !nextOpen && handleClose()}>
       <Dialog.Portal>
         <Dialog.Overlay
           className={[
@@ -90,18 +92,19 @@ export function ChangePlanModal({ open, onClose, balances, plans }: ChangePlanMo
           {step === "select" && (
             <>
               <Dialog.Title className="mb-1 text-base font-semibold text-neutral-900">
-                Buy a plan
+                {t("profile.planModalTitle")}
               </Dialog.Title>
               <Dialog.Description className="mb-6 text-sm text-neutral-500">
-                Select a plan to add to your subscription pool.
+                {t("profile.planModalDescription")}
               </Dialog.Description>
 
               <div className="grid grid-cols-3 gap-3">
                 {plans
-                  .filter((p) => p.level > 0)
+                  .filter((plan) => plan.level > 0)
                   .map((plan) => {
                     const isActive = balances.some(
-                      (b) => b.plan.id === plan.id && b.status === "ACTIVE"
+                      (balance) =>
+                        balance.plan.id === plan.id && balance.status === "ACTIVE",
                     );
                     return (
                       <button
@@ -109,10 +112,10 @@ export function ChangePlanModal({ open, onClose, balances, plans }: ChangePlanMo
                         type="button"
                         onClick={() => handleSelect(plan)}
                         className={[
-                          "flex flex-col gap-2 rounded-xl border-2 p-4 text-left transition-colors",
+                          "flex cursor-pointer flex-col gap-2 rounded-xl border-2 p-4 text-left transition-colors",
                           isActive
-                            ? "border-green-500 bg-green-50"
-                            : "border-neutral-200 hover:border-neutral-400 cursor-pointer",
+                            ? "border-teal-500 bg-teal-50"
+                            : "border-neutral-200 hover:border-neutral-400",
                         ].join(" ")}
                       >
                         <span
@@ -129,8 +132,8 @@ export function ChangePlanModal({ open, onClose, balances, plans }: ChangePlanMo
                           </p>
                         )}
                         {isActive && (
-                          <span className="text-xs font-medium text-green-600">
-                            Active
+                          <span className="text-xs font-medium text-teal-600">
+                            {t("profile.active")}
                           </span>
                         )}
                       </button>
@@ -140,7 +143,7 @@ export function ChangePlanModal({ open, onClose, balances, plans }: ChangePlanMo
 
               <div className="mt-6 flex justify-end">
                 <Button variant="outline" color="neutral" onClick={handleClose}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
               </div>
             </>
@@ -149,12 +152,10 @@ export function ChangePlanModal({ open, onClose, balances, plans }: ChangePlanMo
           {step === "activation" && selected && (
             <>
               <Dialog.Title className="mb-1 text-base font-semibold text-neutral-900">
-                When to activate?
+                {t("profile.planActivationTitle")}
               </Dialog.Title>
               <Dialog.Description className="mb-4 text-sm text-neutral-500">
-                You already have an active plan. Choose when{" "}
-                <span className="font-semibold">{selected.name}</span> should
-                start.
+                {t("profile.planActivationDescription", { name: selected.name })}
               </Dialog.Description>
 
               <div className="flex flex-col gap-3">
@@ -162,7 +163,7 @@ export function ChangePlanModal({ open, onClose, balances, plans }: ChangePlanMo
                   className={[
                     "flex cursor-pointer items-start gap-3 rounded-xl border-2 p-4 transition-colors",
                     activateNow
-                      ? "border-green-500 bg-green-50"
+                      ? "border-teal-500 bg-teal-50"
                       : "border-neutral-200 hover:border-neutral-300",
                   ].join(" ")}
                 >
@@ -171,14 +172,16 @@ export function ChangePlanModal({ open, onClose, balances, plans }: ChangePlanMo
                     name="activateNow"
                     checked={activateNow}
                     onChange={() => setActivateNow(true)}
-                    className="mt-0.5 accent-green-600"
+                    className="mt-0.5 accent-teal-600"
                   />
                   <div>
                     <p className="text-sm font-semibold text-neutral-900">
-                      Activate now
+                      {t("profile.activateNow")}
                     </p>
                     <p className="mt-0.5 text-xs text-neutral-500">
-                      Current plan is paused, {selected.name} starts today.
+                      {t("profile.activateNowDescription", {
+                        name: selected.name,
+                      })}
                     </p>
                   </div>
                 </label>
@@ -187,7 +190,7 @@ export function ChangePlanModal({ open, onClose, balances, plans }: ChangePlanMo
                   className={[
                     "flex cursor-pointer items-start gap-3 rounded-xl border-2 p-4 transition-colors",
                     !activateNow
-                      ? "border-green-500 bg-green-50"
+                      ? "border-teal-500 bg-teal-50"
                       : "border-neutral-200 hover:border-neutral-300",
                   ].join(" ")}
                 >
@@ -196,14 +199,14 @@ export function ChangePlanModal({ open, onClose, balances, plans }: ChangePlanMo
                     name="activateNow"
                     checked={!activateNow}
                     onChange={() => setActivateNow(false)}
-                    className="mt-0.5 accent-green-600"
+                    className="mt-0.5 accent-teal-600"
                   />
                   <div>
                     <p className="text-sm font-semibold text-neutral-900">
-                      Add to queue
+                      {t("profile.addToQueue")}
                     </p>
                     <p className="mt-0.5 text-xs text-neutral-500">
-                      {selected.name} activates after your current plan ends.
+                      {t("profile.addToQueueDescription", { name: selected.name })}
                     </p>
                   </div>
                 </label>
@@ -215,10 +218,10 @@ export function ChangePlanModal({ open, onClose, balances, plans }: ChangePlanMo
                   color="neutral"
                   onClick={() => setStep("select")}
                 >
-                  Back
+                  {t("common.back")}
                 </Button>
-                <Button color="green" onClick={() => setStep("confirm")}>
-                  Continue
+                <Button color="teal" onClick={() => setStep("confirm")}>
+                  {t("common.continue")}
                 </Button>
               </div>
             </>
@@ -227,17 +230,18 @@ export function ChangePlanModal({ open, onClose, balances, plans }: ChangePlanMo
           {step === "confirm" && selected && (
             <>
               <Dialog.Title className="mb-1 text-base font-semibold text-neutral-900">
-                Confirm purchase
+                {t("profile.confirmPurchaseTitle")}
               </Dialog.Title>
               <p className="mt-2 text-sm text-neutral-600">
-                You are buying{" "}
-                <span className="font-semibold">{selected.name}</span> (monthly,
-                ₴{selected.price}/mo).{" "}
+                {t("profile.confirmPurchaseDescription", {
+                  name: selected.name,
+                  price: selected.price,
+                })}{" "}
                 {activePaidBalance && selected.level > 0
                   ? activateNow
-                    ? "It will activate immediately — your current plan will be paused."
-                    : "It will be added to your queue and activate after your current plan ends."
-                  : "It will activate immediately."}
+                    ? t("profile.activateImmediately")
+                    : t("profile.activateAfterCurrent")
+                  : t("profile.activateImmediatelySimple")}
               </p>
 
               <div className="mt-6 flex justify-end gap-3">
@@ -249,14 +253,14 @@ export function ChangePlanModal({ open, onClose, balances, plans }: ChangePlanMo
                   }
                   disabled={isPending}
                 >
-                  Back
+                  {t("common.back")}
                 </Button>
                 <Button
-                  color="green"
+                  color="teal"
                   onClick={handleConfirm}
                   disabled={isPending}
                 >
-                  {isPending ? "Processing…" : "Confirm"}
+                  {isPending ? t("common.processing") : t("profile.confirm")}
                 </Button>
               </div>
             </>

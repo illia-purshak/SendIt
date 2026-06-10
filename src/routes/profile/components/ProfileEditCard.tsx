@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useUpdateProfileMutation } from "@/api/auth";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
@@ -9,6 +10,7 @@ import { useProfileRouteData } from "../useProfileRouteData";
 import { InfoRow } from "./InfoRow";
 
 export function ProfileEditCard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { data } = useProfileRouteData();
   const { mutateAsync: updateProfile, isPending } = useUpdateProfileMutation();
@@ -52,13 +54,13 @@ export function ProfileEditCard() {
         taxNumber: form.taxNumber || undefined,
         phone: form.phone || undefined,
       });
-      toast({ title: "Profile updated", color: "success" });
+      toast({ title: t("profile.profileUpdated"), color: "success" });
       setIsEditing(false);
     } catch (error) {
       toast({
-        title: "Failed to save",
+        title: t("profile.profileSaveFailed"),
         description:
-          error instanceof Error ? error.message : "Something went wrong",
+          error instanceof Error ? error.message : t("profile.somethingWentWrong"),
         color: "error",
       });
     }
@@ -67,36 +69,46 @@ export function ProfileEditCard() {
   if (!isEditing) {
     return (
       <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-neutral-900">Profile</h2>
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-neutral-900">
+              {t("layout.profile")}
+            </h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              {t("profile.profileSubtitle")}
+            </p>
+          </div>
           <Button
             size="sm"
             variant="outline"
             color="neutral"
             onClick={handleEditStart}
           >
-            Edit
+            {t("profile.edit")}
           </Button>
         </div>
         <dl className="divide-y divide-neutral-100">
-          <InfoRow label="Account" value={identifier} />
+          <InfoRow label={t("profile.account")} value={identifier} />
           {organizationProfile && (
             <>
-              <InfoRow label="Company" value={organizationProfile.companyName} />
-              <InfoRow label="EDRPOU" value={organizationProfile.edrpou} />
               <InfoRow
-                label="Legal address"
+                label={t("profile.company")}
+                value={organizationProfile.companyName}
+              />
+              <InfoRow label={t("profile.edrpou")} value={organizationProfile.edrpou} />
+              <InfoRow
+                label={t("profile.legalAddress")}
                 value={organizationProfile.legalAddress}
               />
               {organizationProfile.contactPersonName && (
                 <InfoRow
-                  label="Contact person"
+                  label={t("profile.contactPerson")}
                   value={organizationProfile.contactPersonName}
                 />
               )}
             </>
           )}
-          {data?.phone && <InfoRow label="Phone" value={data.phone} />}
+          {data?.phone && <InfoRow label={t("profile.phone")} value={data.phone} />}
         </dl>
       </div>
     );
@@ -104,18 +116,25 @@ export function ProfileEditCard() {
 
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-4 text-lg font-semibold text-neutral-900">Profile</h2>
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-neutral-900">
+          {t("layout.profile")}
+        </h2>
+        <p className="mt-1 text-sm text-neutral-500">
+          {t("profile.profileSubtitle")}
+        </p>
+      </div>
       <div className="mb-4">
         <dl className="divide-y divide-neutral-100">
-          <InfoRow label="Account" value={identifier} />
+          <InfoRow label={t("profile.account")} value={identifier} />
           {organizationProfile && (
-            <InfoRow label="EDRPOU" value={organizationProfile.edrpou} />
+            <InfoRow label={t("profile.edrpou")} value={organizationProfile.edrpou} />
           )}
         </dl>
       </div>
       <div className="flex flex-col gap-3">
         <Input
-          label="Company name"
+          label={t("auth.companyName")}
           value={form.companyName}
           onChange={(event) =>
             setForm((current) => ({
@@ -123,11 +142,11 @@ export function ProfileEditCard() {
               companyName: event.target.value,
             }))
           }
-          color="green"
+          color="teal"
           required
         />
         <Input
-          label="Company name (Latin)"
+          label={t("profile.companyNameLatin")}
           value={form.companyNameLat}
           onChange={(event) =>
             setForm((current) => ({
@@ -135,10 +154,10 @@ export function ProfileEditCard() {
               companyNameLat: event.target.value,
             }))
           }
-          color="green"
+          color="teal"
         />
         <Input
-          label="Ownership form"
+          label={t("profile.ownershipForm")}
           value={form.ownershipForm}
           onChange={(event) =>
             setForm((current) => ({
@@ -146,10 +165,10 @@ export function ProfileEditCard() {
               ownershipForm: event.target.value,
             }))
           }
-          color="green"
+          color="teal"
         />
         <Input
-          label="Legal address"
+          label={t("profile.legalAddress")}
           value={form.legalAddress}
           onChange={(event) =>
             setForm((current) => ({
@@ -157,11 +176,11 @@ export function ProfileEditCard() {
               legalAddress: event.target.value,
             }))
           }
-          color="green"
+          color="teal"
           required
         />
         <Input
-          label="Contact person"
+          label={t("profile.contactPerson")}
           value={form.contactPersonName}
           onChange={(event) =>
             setForm((current) => ({
@@ -169,10 +188,10 @@ export function ProfileEditCard() {
               contactPersonName: event.target.value,
             }))
           }
-          color="green"
+          color="teal"
         />
         <Input
-          label="Tax number"
+          label={t("profile.taxNumber")}
           value={form.taxNumber}
           onChange={(event) =>
             setForm((current) => ({
@@ -180,26 +199,26 @@ export function ProfileEditCard() {
               taxNumber: event.target.value,
             }))
           }
-          color="green"
+          color="teal"
         />
         <Input
-          label="Phone"
+          label={t("profile.phone")}
           value={form.phone}
           onChange={(event) =>
             setForm((current) => ({ ...current, phone: event.target.value }))
           }
-          color="green"
+          color="teal"
         />
         <div className="mt-1 flex gap-2">
-          <Button color="green" disabled={isPending} onClick={handleSave}>
-            {isPending ? "Saving..." : "Save"}
+          <Button color="teal" disabled={isPending} onClick={handleSave}>
+            {isPending ? t("common.saving") : t("common.save")}
           </Button>
           <Button
             variant="outline"
             color="neutral"
             onClick={() => setIsEditing(false)}
           >
-            Cancel
+            {t("common.cancel")}
           </Button>
         </div>
       </div>
