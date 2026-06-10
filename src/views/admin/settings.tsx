@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAdminProfileQuery, useAdminUpdateSettingsMutation } from "@/api/admin-profile";
 import { Button } from "@/components/Button";
 import { Select } from "@/components/Select/Select";
+import { Spinner } from "@/components/Loader/Spinner";
 import { syncLanguage } from "@/i18n/utils";
 
 const TIMEZONE_OPTIONS = [
@@ -19,8 +20,25 @@ const DATE_FORMAT_OPTIONS = [
 ];
 
 export default function AdminSettingsPage() {
-  const { t } = useTranslation();
   const { data, isLoading } = useAdminProfileQuery();
+
+  if (isLoading) {
+    return (
+      <main className="py-10">
+        <div className="flex justify-center py-20">
+          <Spinner />
+        </div>
+      </main>
+    );
+  }
+
+  return <SettingsForm settings={data?.settings} />;
+}
+
+type AdminSettings = { language?: string | null; timezone?: string | null; dateFormat?: string | null } | undefined;
+
+function SettingsForm({ settings }: { settings: AdminSettings }) {
+  const { t } = useTranslation();
   const { mutateAsync: updateSettings, isPending } = useAdminUpdateSettingsMutation();
   const [notifPrefs, setNotifPrefs] = useState({
     shipmentEmail: true,
@@ -28,16 +46,9 @@ export default function AdminSettingsPage() {
     newUserEmail: true,
     systemEmail: false,
   });
-  const [language, setLanguage] = useState(data?.settings.language ?? "en");
-  const [timezone, setTimezone] = useState(data?.settings.timezone ?? "Europe/Kyiv");
-  const [dateFormat, setDateFormat] = useState(data?.settings.dateFormat ?? "DD.MM.YYYY");
-
-  useEffect(() => {
-    if (!data?.settings) return;
-    setLanguage(data.settings.language ?? "en");
-    setTimezone(data.settings.timezone ?? "Europe/Kyiv");
-    setDateFormat(data.settings.dateFormat ?? "DD.MM.YYYY");
-  }, [data?.settings]);
+  const [language, setLanguage] = useState(settings?.language ?? "en");
+  const [timezone, setTimezone] = useState(settings?.timezone ?? "Europe/Kyiv");
+  const [dateFormat, setDateFormat] = useState(settings?.dateFormat ?? "DD.MM.YYYY");
 
   function togglePref(key: keyof typeof notifPrefs) {
     setNotifPrefs((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -114,7 +125,7 @@ export default function AdminSettingsPage() {
         </Section>
 
         <div>
-          <Button color="teal" disabled={isPending || isLoading} onClick={handleSave}>
+          <Button color="teal" disabled={isPending} onClick={handleSave}>
             {isPending ? t("common.saving") : t("common.saveSettings")}
           </Button>
         </div>

@@ -46,17 +46,19 @@ export interface AdminUserListItem {
   id: number
   email: string
   status: 'ACTIVE' | 'INACTIVE' | 'BANNED' | 'DELETED'
-  profile: { companyName: string }
-  subscription: { plan: { level: string } } | null
   createdAt: string
+  profile: { companyName: string | null } | null
+  subscriptionBalances: Array<{ plan: { level: number; name: string } }>
 }
 
 export type AdminUsersResponse = PaginatedResponse<AdminUserListItem>
 
 export interface AdminUserQueryParams {
-  plan?: string
-  status?: string
-  search?: string
   page?: number
   limit?: number
+  search?: string
+  status?: 'ACTIVE' | 'INACTIVE' | 'BANNED' | 'DELETED'
+  plan?: 0 | 1 | 2
+  sortBy?: 'createdAt' | 'email'
+  sortOrder?: 'asc' | 'desc'
 }

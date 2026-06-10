@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import * as Dialog from '@radix-ui/react-dialog'
@@ -14,7 +14,7 @@ import {
 } from '@/api/recipients'
 import { useToast } from '@/components/Toast/use-toast'
 import { ApiValidationError } from '@/utils/parseApiError'
-import { isValidUaPhone, normalizeUaPhone } from '@/utils/validation'
+import { normalizeUaPhone } from '@/utils/validation'
 import type {
   Recipient,
   RecipientAddress,
@@ -45,20 +45,6 @@ function createRecipientFormSchema(t: (key: string) => string) {
       postCode: z.string(),
     })
     .superRefine((values, ctx) => {
-      if (!values.phone.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['phone'],
-          message: t('recipientForm.validation.phoneRequired'),
-        })
-      } else if (!isValidUaPhone(values.phone)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['phone'],
-          message: t('shipmentForm.validation.invalidPhone'),
-        })
-      }
-
       if (values.type === 'INDIVIDUAL') {
         if (!values.firstName.trim()) {
           ctx.addIssue({
@@ -248,8 +234,8 @@ export function RecipientFormModal({ open, recipientId, onClose }: RecipientForm
     defaultValues: EMPTY_VALUES,
   })
 
-  const recipientType = form.watch('type')
-  const addressType = form.watch('addressType')
+  const recipientType = useWatch({ control: form.control, name: 'type' })
+  const addressType = useWatch({ control: form.control, name: 'addressType' })
   const isPending = isCreating || isUpdating
 
   useEffect(() => {

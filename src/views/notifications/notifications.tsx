@@ -120,9 +120,9 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     if (!isLoading && notifications.length === 0 && page > 1) {
-      setPage(1);
+      setSearchParams((p) => { p.delete("page"); return p; }, { replace: true });
     }
-  }, [isLoading, notifications.length, page]);
+  }, [isLoading, notifications.length, page, setSearchParams]);
 
   const anyMutating =
     markRead.isPending ||

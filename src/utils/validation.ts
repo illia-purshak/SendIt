@@ -27,6 +27,11 @@ export function isValidUaPhone(phone: string): boolean {
   return /^380\d{9}$/.test(normalizeUaPhone(phone));
 }
 
+export function isValidInternationalPhone(phone: string): boolean {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 7 && digits.length <= 15;
+}
+
 export function validatePhone(phone: string): string | null {
   if (!isValidUaPhone(phone)) return t("validation.phoneE164");
   return null;

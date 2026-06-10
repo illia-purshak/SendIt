@@ -100,10 +100,10 @@ export default function RecipientsPage() {
   const recipients = data?.items ?? []
   const meta = data?.meta
 
-  const typeFilterOptions = [
+  const typeFilterOptions = useMemo(() => [
     { value: 'INDIVIDUAL', label: t('recipientsPage.type.individual') },
     { value: 'ORGANIZATION', label: t('recipientsPage.type.organization') },
-  ]
+  ], [t])
 
   const columns = useMemo<ColumnDef<Recipient>[]>(() => {
     async function handleDelete(id: number) {

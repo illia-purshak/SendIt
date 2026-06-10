@@ -20,11 +20,13 @@ export function useAdminUsersQuery(params: AdminUserQueryParams) {
     queryFn: async () => {
       const res = await adminApiClient.get<AdminUsersResponse>(API_ROUTES.adminUsers.list, {
         params: {
-          ...(params.plan ? { plan: params.plan } : {}),
-          ...(params.status ? { status: params.status } : {}),
-          ...(params.search ? { search: params.search } : {}),
           page: params.page ?? 1,
-          limit: params.limit ?? 20,
+          limit: params.limit ?? 25,
+          ...(params.search ? { search: params.search } : {}),
+          ...(params.status ? { status: params.status } : {}),
+          ...(params.plan !== undefined ? { plan: params.plan } : {}),
+          ...(params.sortBy ? { sortBy: params.sortBy } : {}),
+          ...(params.sortOrder ? { sortOrder: params.sortOrder } : {}),
         },
       })
       if (res.status >= 200 && res.status < 300) return res.data
