@@ -9,6 +9,8 @@ import {
 } from "./variants";
 import { defaultUiColor, type UiColor } from "../ui.config";
 
+const EMPTY_OPTION_VALUE = "__empty__";
+
 export interface SelectOption {
   value: string;
   label: string;
@@ -40,6 +42,12 @@ export function Select({
   ...props
 }: SelectProps) {
   const id = useId();
+  const normalizedValue =
+    typeof props.value === "string" && props.value === "" ? EMPTY_OPTION_VALUE : props.value;
+
+  function handleValueChange(value: string) {
+    props.onValueChange?.(value === EMPTY_OPTION_VALUE ? "" : value);
+  }
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -49,7 +57,12 @@ export function Select({
         </Label>
       )}
 
-      <SelectPrimitive.Root disabled={disabled} {...props}>
+      <SelectPrimitive.Root
+        {...props}
+        disabled={disabled}
+        value={normalizedValue}
+        onValueChange={handleValueChange}
+      >
         <SelectPrimitive.Trigger
           id={id}
           className={[
@@ -82,7 +95,7 @@ export function Select({
               {options.map((opt) => (
                 <SelectPrimitive.Item
                   key={opt.value}
-                  value={opt.value}
+                  value={opt.value === "" ? EMPTY_OPTION_VALUE : opt.value}
                   disabled={opt.disabled}
                   className={[
                     "relative flex cursor-pointer select-none items-center rounded-md py-2 pl-3 pr-8 text-sm text-neutral-700 outline-none",
