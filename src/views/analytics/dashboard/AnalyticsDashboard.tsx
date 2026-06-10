@@ -74,7 +74,13 @@ function MetricCard({
   );
 }
 
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+function SectionCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
       <p className="mb-4 text-sm font-semibold text-neutral-800">{title}</p>
@@ -111,9 +117,13 @@ export default function AnalyticsDashboard() {
         </button>
         <div className="flex min-h-60 flex-col items-center justify-center gap-3 rounded-2xl border border-red-100 bg-red-50 py-16 text-center">
           <AlertCircle size={28} className="text-red-400" />
-          <p className="text-base font-semibold text-red-700">Failed to load dashboard</p>
+          <p className="text-base font-semibold text-red-700">
+            Failed to load dashboard
+          </p>
           <p className="text-sm text-red-500">
-            {error instanceof Error ? error.message : "An unexpected error occurred."}
+            {error instanceof Error
+              ? error.message
+              : "An unexpected error occurred."}
           </p>
         </div>
       </main>
@@ -127,7 +137,11 @@ export default function AnalyticsDashboard() {
   const planLevel = plan?.level ?? 0;
   const planStyle = PLAN_STYLE[planLevel] ?? PLAN_STYLE[0];
   const periodEnd = plan?.periodEnd
-    ? new Date(plan.periodEnd).toLocaleDateString("uk-UA", { day: "numeric", month: "short", year: "numeric" })
+    ? new Date(plan.periodEnd).toLocaleDateString("uk-UA", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
     : null;
 
   const successRatePct = `${Math.round(shipments.deliverySuccessRate * 100)}%`;
@@ -143,16 +157,26 @@ export default function AnalyticsDashboard() {
           Back
         </button>
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">Analytics Dashboard</h1>
+          <h1 className="text-2xl font-semibold text-neutral-900">
+            Analytics Dashboard
+          </h1>
           <p className="mt-0.5 text-sm text-neutral-500">All-time overview</p>
         </div>
       </div>
 
       {/* Top stat cards */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard label="Total Shipments" value={String(shipments.total)} />
         <MetricCard label="Delivery Rate" value={successRatePct} />
-        <MetricCard label="Total Spend" value={formatMoney(billing.totalSpent)} variant="featured" />
+        <MetricCard
+          label="Templates"
+          value={String(account.templatesCount)}
+          variant="compact"
+        />
+        <MetricCard
+          label="Total Spend"
+          value={formatMoney(billing.totalSpent)}
+          variant="featured"
+        />
         <MetricCard label="Plan" variant="default">
           <div className="flex min-w-0 flex-col gap-3">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -169,8 +193,12 @@ export default function AnalyticsDashboard() {
             )}
           </div>
         </MetricCard>
-        <MetricCard label="Drafts" value={String(account.draftsCount)} variant="compact" />
-        <MetricCard label="Templates" value={String(account.templatesCount)} variant="compact" />
+        <MetricCard
+          label="Drafts"
+          value={String(account.draftsCount)}
+          variant="compact"
+        />
+        <MetricCard label="Total Shipments" value={String(shipments.total)} />
       </div>
 
       {/* Operator donut + Status bars */}
@@ -211,13 +239,23 @@ export default function AnalyticsDashboard() {
                 className="flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5"
               >
                 {conn.logoUrl && (
-                  <img src={conn.logoUrl} alt={conn.name} className="h-4 w-4 rounded-full object-contain" />
+                  <img
+                    src={conn.logoUrl}
+                    alt={conn.name}
+                    className="h-4 w-4 rounded-full object-contain"
+                  />
                 )}
-                <span className="text-sm font-medium text-neutral-800">{conn.name}</span>
+                <span className="text-sm font-medium text-neutral-800">
+                  {conn.name}
+                </span>
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs font-medium ${CONN_STYLE[conn.status]}`}
                 >
-                  {conn.status === "ACTIVE" ? "Active" : conn.status === "BLOCKED" ? "Blocked" : "Invalid"}
+                  {conn.status === "ACTIVE"
+                    ? "Active"
+                    : conn.status === "BLOCKED"
+                      ? "Blocked"
+                      : "Invalid"}
                 </span>
               </div>
             ))}

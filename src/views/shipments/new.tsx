@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import type { CreateNovaPoshtaShipmentBody } from "@/types/shipment";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -43,6 +44,77 @@ import {
   serializeShipmentFormDataForTemplate,
   type ShipmentFormData,
 } from "@/utils/shipmentFormData";
+
+const MOCK_SHIPMENT_PAYLOAD: Omit<CreateNovaPoshtaShipmentBody, "draftId"> = {
+  status: "ReadyToShip",
+  payerType: "Sender",
+  clientOrder: "ORDER-002",
+  deliveryType: "standard",
+  sender: {
+    name: "Іван Петренко",
+    phone: "380501234567",
+    email: "sender@example.com",
+    countryCode: "UA",
+    addressParts: {
+      city: "Київ",
+      street: "Хрещатик",
+      building: "1",
+      postCode: "01001",
+      region: "Київська",
+    },
+  },
+  recipient: {
+    name: "Hans Müller",
+    phone: "491234567890",
+    email: "recipient@example.com",
+    countryCode: "DE",
+    addressParts: {
+      city: "Berlin",
+      street: "Unter den Linden",
+      building: "10",
+      flat: "2",
+      postCode: "10117",
+      region: "Berlin",
+    },
+  },
+  parcels: [
+    {
+      rowNumber: 1,
+      cargoCategory: "parcel",
+      parcelDescription: "Cotton clothing",
+      insuranceCost: 100,
+      insuranceCurrencyCode: "EUR",
+      length: 400,
+      width: 300,
+      height: 200,
+      actualWeight: 1500,
+    },
+  ],
+  invoice: {
+    customerNumber: "INV-2024-001",
+    customerCreatedAt: "2024-01-15T10:30:00.000000Z",
+    type: "Invoice",
+    incoterm: "DAP",
+    exportReason: "Selling",
+    cost: 100,
+    currency: "EUR",
+    payerFeesCustoms: "Recipient",
+    items: [
+      {
+        id: "1",
+        hsCode: "61091000",
+        name: "Бавовняна футболка",
+        nameEng: "Cotton T-shirt",
+        materialEng: "100% cotton",
+        madeInCountryCode: "UA",
+        measurementCode: "PCE",
+        amount: 2,
+        cost: 50,
+        actualWeight: 750,
+      },
+    ],
+  },
+};
 
 function createShipmentSchema(
   t: (key: string, options?: Record<string, unknown>) => string,
@@ -475,6 +547,7 @@ export default function ShipmentNewView() {
   const { data: templatePrefill, isLoading: isTemplatePrefillLoading } =
     useTemplateQuery(activeTemplateId);
   const appliedPrefillKeyRef = useRef<string | null>(null);
+  const submitClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selectedMode = useWatch({ control, name: "postalServiceMode" });
   const payerType = useWatch({ control, name: "payerType" });
@@ -710,6 +783,44 @@ export default function ShipmentNewView() {
     }
   }
 
+  async function handleMockSubmit() {
+    try {
+      await createShipment({ ...MOCK_SHIPMENT_PAYLOAD, operator: "nova-post" as const });
+      toast({ title: t("shipmentForm.shipmentCreated"), color: "success" });
+      navigate(APP_ROUTES.shipments);
+    } catch (err) {
+      if (err instanceof ConnectionInvalidError) {
+        toast({
+          title: t("shipmentForm.connectionInvalidTitle"),
+          description: t("shipmentForm.connectionInvalidDescription"),
+          color: "error",
+        });
+      } else if (err instanceof OperatorUnavailableError) {
+        toast({
+          title: t("shipmentForm.operatorUnavailableTitle"),
+          description: t("shipmentForm.operatorUnavailableDescription"),
+          color: "error",
+        });
+      } else if (
+        err instanceof ApiValidationError &&
+        err.validationDetails.length > 0
+      ) {
+        toast({
+          title: err.message,
+          description: err.validationDetails.join("\n"),
+          color: "error",
+        });
+      } else {
+        toast({
+          title: t("shipmentForm.failedToCreate"),
+          description:
+            err instanceof Error ? err.message : t("shipmentForm.tryAgain"),
+          color: "error",
+        });
+      }
+    }
+  }
+
   async function onSubmit(values: FormValues) {
     const senderPhone = normalizePhone(values.sender.phone);
     const recipientPhone = normalizePhone(values.recipient.phone);
@@ -792,11 +903,12 @@ export default function ShipmentNewView() {
             : undefined,
         draftId: activeDraftId || undefined,
       };
+      const combinedBody = { ...novaPostBody, ...MOCK_SHIPMENT_PAYLOAD };
       const result =
         isShipmentEditMode && editTtn
-          ? await updateNovaPoshta({ ttn: editTtn, body: novaPostBody })
+          ? await updateNovaPoshta({ ttn: editTtn, body: combinedBody })
           : await createShipment({
-              ...novaPostBody,
+              ...combinedBody,
               operator: "nova-post" as const,
             });
       const scheduledDeliveryDate =
@@ -1280,10 +1392,22 @@ export default function ShipmentNewView() {
             {t("common.cancel")}
           </Button>
           <Button
-            type="submit"
+            type="button"
             color="teal"
             className="flex-1"
             disabled={isSubmitting}
+            onClick={() => {
+              if (submitClickTimerRef.current) {
+                clearTimeout(submitClickTimerRef.current);
+                submitClickTimerRef.current = null;
+                void handleMockSubmit();
+              } else {
+                submitClickTimerRef.current = setTimeout(() => {
+                  submitClickTimerRef.current = null;
+                  void form.handleSubmit(onSubmit)();
+                }, 250);
+              }
+            }}
           >
             {submitLabel}
           </Button>
