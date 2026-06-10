@@ -249,7 +249,7 @@ export function mapShipmentSourceToFormData(
     sender: {
       name: (sender?.name as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.sender.name,
       phone: (sender?.phone as string | undefined)
-        ? normalizeUaPhone(sender.phone as string)
+        ? normalizeUaPhone(sender!.phone as string)
         : DEFAULT_SHIPMENT_FORM_DATA.sender.phone,
       email: (sender?.email as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.sender.email,
       countryCode: (sender?.countryCode as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.sender.countryCode,
@@ -263,8 +263,7 @@ export function mapShipmentSourceToFormData(
         DEFAULT_SHIPMENT_FORM_DATA.sender.city,
       address:
         (sender?.address as string | undefined) ??
-        senderDerivedAddress ||
-        DEFAULT_SHIPMENT_FORM_DATA.sender.address,
+        (senderDerivedAddress || DEFAULT_SHIPMENT_FORM_DATA.sender.address),
       postalCode:
         (sender?.postalCode as string | undefined) ??
         (senderAddressParts?.postCode as string | undefined) ??
@@ -274,7 +273,7 @@ export function mapShipmentSourceToFormData(
     recipient: {
       name: (recipient?.name as string | undefined) ?? (data.recipientName as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.recipient.name,
       phone: (recipient?.phone as string | undefined)
-        ? normalizeUaPhone(recipient.phone as string)
+        ? normalizeUaPhone(recipient!.phone as string)
         : (data.recipientPhone as string | undefined)
           ? normalizeUaPhone(data.recipientPhone as string)
           : DEFAULT_SHIPMENT_FORM_DATA.recipient.phone,
@@ -287,9 +286,7 @@ export function mapShipmentSourceToFormData(
         DEFAULT_SHIPMENT_FORM_DATA.recipient.city,
       address:
         (recipient?.address as string | undefined) ??
-        recipientDerivedAddress ||
-        (data.deliveryAddress as string | undefined) ??
-        DEFAULT_SHIPMENT_FORM_DATA.recipient.address,
+        (recipientDerivedAddress || (data.deliveryAddress as string | undefined) || DEFAULT_SHIPMENT_FORM_DATA.recipient.address),
       postalCode:
         (recipient?.postalCode as string | undefined) ??
         (recipientAddressParts?.postCode as string | undefined) ??

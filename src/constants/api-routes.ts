@@ -138,4 +138,8 @@ export const API_ROUTES = {
   adminStatistics: {
     summary: '/admin/statistics',
   },
+  adminServices: {
+    list: '/admin/services',
+    detail: (id: number) => `/admin/services/${id}`,
+  },
 } as const
