@@ -58,17 +58,31 @@ export interface ShipmentDetail extends ShipmentListItem {
 export interface ShipmentPrefillPerson {
   name?: string
   phone?: string
+  email?: string
   countryCode?: string
+  companyTin?: string
+  companyName?: string
+  eoriCode?: string
   divisionNumber?: string
   city?: string
   address?: string
   postalCode?: string
+  addressParts?: {
+    city?: string
+    street?: string
+    building?: string
+    flat?: string
+    postCode?: string
+    region?: string
+  }
 }
 
 export interface ShipmentPrefillParcel {
+  rowNumber?: number
   cargoCategory?: string
   parcelDescription?: string
   insuranceCost?: number
+  insuranceCurrencyCode?: string
   actualWeight?: number
   dimensions?: {
     length?: number
@@ -80,6 +94,24 @@ export interface ShipmentPrefillParcel {
 export interface ShipmentPrefillInvoice {
   cost?: number
   currency?: string
+  customerNumber?: string
+  customerCreatedAt?: string
+  type?: 'Invoice' | 'ProformaInvoice'
+  incoterm?: 'DAP' | 'DDP'
+  exportReason?: 'ForPersonalPurposes' | 'Selling' | 'Repair' | 'Return' | 'Other'
+  payerFeesCustoms?: 'Sender' | 'Recipient' | 'ThirdPerson'
+  items?: Array<{
+    id?: string
+    hsCode?: string
+    name?: string
+    nameEng?: string
+    materialEng?: string
+    madeInCountryCode?: string
+    measurementCode?: string
+    amount?: number
+    cost?: number
+    actualWeight?: number
+  }>
 }
 
 export interface ShipmentPrefillDetail {
@@ -100,9 +132,11 @@ export interface ShipmentPrefillDetail {
   recipient?: ShipmentPrefillPerson
   parcel?: ShipmentPrefillParcel
   parcels?: Array<{
+    rowNumber?: number
     cargoCategory?: 'parcel' | 'documents' | 'pallet'
     parcelDescription?: string
     insuranceCost?: number
+    insuranceCurrencyCode?: string
     actualWeight?: number
     width?: number
     length?: number
@@ -148,14 +182,35 @@ export interface CreateNovaPoshtaShipmentBody {
   sender: {
     name: string
     phone: string
+    email?: string
     countryCode: string
+    companyTin?: string
+    companyName?: string
+    eoriCode?: string
     divisionNumber?: string
+    addressParts?: {
+      city: string
+      street: string
+      building: string
+      flat?: string
+      postCode: string
+      region?: string
+    }
   }
   recipient: {
     name: string
     phone: string
+    email?: string
     countryCode: string
     divisionNumber?: string
+    addressParts?: {
+      city: string
+      street: string
+      building: string
+      flat?: string
+      postCode: string
+      region?: string
+    }
   }
   parcels: Array<{
     rowNumber: number
@@ -166,10 +221,29 @@ export interface CreateNovaPoshtaShipmentBody {
     length: number
     height: number
     insuranceCost: number
+    insuranceCurrencyCode?: string
   }>
   invoice?: {
+    customerNumber?: string
+    customerCreatedAt?: string
+    type?: 'Invoice' | 'ProformaInvoice'
+    incoterm?: 'DAP' | 'DDP'
+    exportReason?: 'ForPersonalPurposes' | 'Selling' | 'Repair' | 'Return' | 'Other'
     cost?: number
     currency?: string
+    payerFeesCustoms?: 'Sender' | 'Recipient' | 'ThirdPerson'
+    items?: Array<{
+      id?: string
+      hsCode?: string
+      name?: string
+      nameEng?: string
+      materialEng?: string
+      madeInCountryCode?: string
+      measurementCode?: string
+      amount?: number
+      cost?: number
+      actualWeight?: number
+    }>
   }
 }
 

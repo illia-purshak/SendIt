@@ -37,28 +37,52 @@ export interface ShipmentFormData {
   note: string;
   deliveryType: "" | "standard" | "economy" | "express";
   readyToShip: boolean;
+  status?: "ReadyToShip";
   sender: {
     name: string;
     phone: string;
+    email?: string;
     countryCode: string;
+    companyTin?: string;
+    companyName?: string;
+    eoriCode?: string;
     divisionNumber: string;
     city: string;
     address: string;
     postalCode: string;
+    addressParts?: {
+      city?: string;
+      street?: string;
+      building?: string;
+      flat?: string;
+      postCode?: string;
+      region?: string;
+    };
   };
   recipient: {
     name: string;
     phone: string;
+    email?: string;
     countryCode: string;
     divisionNumber: string;
     city: string;
     address: string;
     postalCode: string;
+    addressParts?: {
+      city?: string;
+      street?: string;
+      building?: string;
+      flat?: string;
+      postCode?: string;
+      region?: string;
+    };
   };
   parcel: {
+    rowNumber?: number;
     cargoCategory: "parcel" | "documents" | "pallet";
     parcelDescription: string;
     insuranceCost: number;
+    insuranceCurrencyCode?: string;
     actualWeight: number;
     dimensions: {
       length: number;
@@ -69,6 +93,24 @@ export interface ShipmentFormData {
   invoice: {
     cost: number;
     currency: string;
+    customerNumber?: string;
+    customerCreatedAt?: string;
+    type?: "Invoice" | "ProformaInvoice";
+    incoterm?: "DAP" | "DDP";
+    exportReason?: "ForPersonalPurposes" | "Selling" | "Repair" | "Return" | "Other";
+    payerFeesCustoms?: "Sender" | "Recipient" | "ThirdPerson";
+    items?: Array<{
+      id?: string;
+      hsCode?: string;
+      name?: string;
+      nameEng?: string;
+      materialEng?: string;
+      madeInCountryCode?: string;
+      measurementCode?: string;
+      amount?: number;
+      cost?: number;
+      actualWeight?: number;
+    }>;
   };
 }
 
@@ -186,6 +228,14 @@ export function mapShipmentSourceToFormData(
   const sender = asRecord(data.sender);
   const recipient = asRecord(data.recipient);
   const invoice = asRecord(data.invoice);
+  const senderAddressParts = asRecord(sender?.addressParts);
+  const recipientAddressParts = asRecord(recipient?.addressParts);
+  const senderDerivedAddress = [senderAddressParts?.street, senderAddressParts?.building]
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .join(", ");
+  const recipientDerivedAddress = [recipientAddressParts?.street, recipientAddressParts?.building]
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .join(", ");
 
   return {
     postalServiceMode: mode,
@@ -195,16 +245,31 @@ export function mapShipmentSourceToFormData(
     note: (data.note as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.note,
     deliveryType: (data.deliveryType as ShipmentFormData["deliveryType"] | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.deliveryType,
     readyToShip: (data.readyToShip as boolean | undefined) ?? data.status === "ReadyToShip",
+    status: data.status === "ReadyToShip" ? "ReadyToShip" : undefined,
     sender: {
       name: (sender?.name as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.sender.name,
       phone: (sender?.phone as string | undefined)
         ? normalizeUaPhone(sender.phone as string)
         : DEFAULT_SHIPMENT_FORM_DATA.sender.phone,
+      email: (sender?.email as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.sender.email,
       countryCode: (sender?.countryCode as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.sender.countryCode,
+      companyTin: (sender?.companyTin as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.sender.companyTin,
+      companyName: (sender?.companyName as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.sender.companyName,
+      eoriCode: (sender?.eoriCode as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.sender.eoriCode,
       divisionNumber: (sender?.divisionNumber as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.sender.divisionNumber,
-      city: (sender?.city as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.sender.city,
-      address: (sender?.address as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.sender.address,
-      postalCode: (sender?.postalCode as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.sender.postalCode,
+      city:
+        (sender?.city as string | undefined) ??
+        (senderAddressParts?.city as string | undefined) ??
+        DEFAULT_SHIPMENT_FORM_DATA.sender.city,
+      address:
+        (sender?.address as string | undefined) ??
+        senderDerivedAddress ||
+        DEFAULT_SHIPMENT_FORM_DATA.sender.address,
+      postalCode:
+        (sender?.postalCode as string | undefined) ??
+        (senderAddressParts?.postCode as string | undefined) ??
+        DEFAULT_SHIPMENT_FORM_DATA.sender.postalCode,
+      addressParts: senderAddressParts as ShipmentFormData["sender"]["addressParts"] | undefined,
     },
     recipient: {
       name: (recipient?.name as string | undefined) ?? (data.recipientName as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.recipient.name,
@@ -213,16 +278,30 @@ export function mapShipmentSourceToFormData(
         : (data.recipientPhone as string | undefined)
           ? normalizeUaPhone(data.recipientPhone as string)
           : DEFAULT_SHIPMENT_FORM_DATA.recipient.phone,
+      email: (recipient?.email as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.recipient.email,
       countryCode: (recipient?.countryCode as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.recipient.countryCode,
       divisionNumber: (recipient?.divisionNumber as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.recipient.divisionNumber,
-      city: (recipient?.city as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.recipient.city,
-      address: (recipient?.address as string | undefined) ?? (data.deliveryAddress as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.recipient.address,
-      postalCode: (recipient?.postalCode as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.recipient.postalCode,
+      city:
+        (recipient?.city as string | undefined) ??
+        (recipientAddressParts?.city as string | undefined) ??
+        DEFAULT_SHIPMENT_FORM_DATA.recipient.city,
+      address:
+        (recipient?.address as string | undefined) ??
+        recipientDerivedAddress ||
+        (data.deliveryAddress as string | undefined) ??
+        DEFAULT_SHIPMENT_FORM_DATA.recipient.address,
+      postalCode:
+        (recipient?.postalCode as string | undefined) ??
+        (recipientAddressParts?.postCode as string | undefined) ??
+        DEFAULT_SHIPMENT_FORM_DATA.recipient.postalCode,
+      addressParts: recipientAddressParts as ShipmentFormData["recipient"]["addressParts"] | undefined,
     },
     parcel: {
+      rowNumber: parcel.rowNumber != null ? toFiniteNumber(parcel.rowNumber) : undefined,
       cargoCategory: ((parcel.cargoCategory as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.parcel.cargoCategory) as ShipmentFormData["parcel"]["cargoCategory"],
       parcelDescription: (parcel.parcelDescription as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.parcel.parcelDescription,
       insuranceCost: toFiniteNumber(parcel.insuranceCost, DEFAULT_SHIPMENT_FORM_DATA.parcel.insuranceCost),
+      insuranceCurrencyCode: (parcel.insuranceCurrencyCode as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.parcel.insuranceCurrencyCode,
       actualWeight,
       dimensions: {
         length,
@@ -235,6 +314,13 @@ export function mapShipmentSourceToFormData(
         ? toFiniteNumber(invoice.cost)
         : toFiniteNumber(data.declaredValue, DEFAULT_SHIPMENT_FORM_DATA.invoice.cost),
       currency: (invoice?.currency as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.invoice.currency,
+      customerNumber: (invoice?.customerNumber as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.invoice.customerNumber,
+      customerCreatedAt: (invoice?.customerCreatedAt as string | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.invoice.customerCreatedAt,
+      type: (invoice?.type as ShipmentFormData["invoice"]["type"] | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.invoice.type,
+      incoterm: (invoice?.incoterm as ShipmentFormData["invoice"]["incoterm"] | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.invoice.incoterm,
+      exportReason: (invoice?.exportReason as ShipmentFormData["invoice"]["exportReason"] | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.invoice.exportReason,
+      payerFeesCustoms: (invoice?.payerFeesCustoms as ShipmentFormData["invoice"]["payerFeesCustoms"] | undefined) ?? DEFAULT_SHIPMENT_FORM_DATA.invoice.payerFeesCustoms,
+      items: Array.isArray(invoice?.items) ? (invoice.items as ShipmentFormData["invoice"]["items"]) : DEFAULT_SHIPMENT_FORM_DATA.invoice.items,
     },
   };
 }

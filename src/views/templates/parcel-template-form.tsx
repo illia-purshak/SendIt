@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
@@ -12,7 +12,7 @@ import { useCreateTemplateMutation, useTemplateQuery, useUpdateTemplateMutation 
 import { usePostalConnectionsQuery } from "@/api/postal-connections";
 import { toastStore } from "@/store/toastStore";
 import type { ShipmentType } from "@/types/template";
-import { isValidUaPhone, normalizeUaPhone } from "@/utils/validation";
+import { normalizeUaPhone } from "@/utils/validation";
 import {
   DEFAULT_SHIPMENT_FORM_DATA,
   POSTAL_SERVICE_MODE_REQUIREMENTS,
@@ -68,17 +68,6 @@ function createTemplateSchema(t: (key: string) => string) {
       cost: z.number().min(0),
       currency: z.string().optional(),
     }),
-  }).superRefine((values, ctx) => {
-    (["sender", "recipient"] as const).forEach((party) => {
-      const phone = values[party].phone?.trim();
-      if (phone && !isValidUaPhone(phone)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [party, "phone"],
-          message: t("shipmentForm.validation.invalidPhone"),
-        });
-      }
-    });
   });
 }
 
@@ -217,7 +206,7 @@ function TemplateForm({
     defaultValues: buildTemplateFormValues(defaultValues),
   });
 
-  const { register, handleSubmit, watch, reset, formState: { errors } } = form;
+  const { register, handleSubmit, control, reset, formState: { errors } } = form;
   const isPending = isCreating || isUpdating;
 
   useEffect(() => {
@@ -229,7 +218,7 @@ function TemplateForm({
   }, [defaultValues, reset, templateId]);
 
   const connections = connectionsData?.connections ?? [];
-  const watchedServiceId = watch("postalServiceId");
+  const watchedServiceId = useWatch({ control, name: "postalServiceId" });
   const selectedConnection = connections.find(c => c.postalService.id === watchedServiceId);
   const operatorMode = normalizePostalServiceMode(selectedConnection?.postalService.slug);
   const modeRequirements = POSTAL_SERVICE_MODE_REQUIREMENTS[operatorMode];
