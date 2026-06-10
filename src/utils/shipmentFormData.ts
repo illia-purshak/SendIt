@@ -263,8 +263,7 @@ export function mapShipmentSourceToFormData(
         DEFAULT_SHIPMENT_FORM_DATA.sender.city,
       address:
         (sender?.address as string | undefined) ??
-        senderDerivedAddress ||
-        DEFAULT_SHIPMENT_FORM_DATA.sender.address,
+        (senderDerivedAddress || DEFAULT_SHIPMENT_FORM_DATA.sender.address),
       postalCode:
         (sender?.postalCode as string | undefined) ??
         (senderAddressParts?.postCode as string | undefined) ??
@@ -287,9 +286,7 @@ export function mapShipmentSourceToFormData(
         DEFAULT_SHIPMENT_FORM_DATA.recipient.city,
       address:
         (recipient?.address as string | undefined) ??
-        recipientDerivedAddress ||
-        (data.deliveryAddress as string | undefined) ??
-        DEFAULT_SHIPMENT_FORM_DATA.recipient.address,
+        (recipientDerivedAddress || (data.deliveryAddress as string | undefined) || DEFAULT_SHIPMENT_FORM_DATA.recipient.address),
       postalCode:
         (recipient?.postalCode as string | undefined) ??
         (recipientAddressParts?.postCode as string | undefined) ??

@@ -236,15 +236,28 @@ function TemplateForm({
         readyToShip: values.readyToShip ?? false,
         sender: {
           ...values.sender,
+          name: values.sender.name ?? "",
           phone: values.sender.phone ? normalizeUaPhone(values.sender.phone) : "",
+          countryCode: values.sender.countryCode ?? "",
+          divisionNumber: values.sender.divisionNumber ?? "",
+          city: values.sender.city ?? "",
+          address: values.sender.address ?? "",
+          postalCode: values.sender.postalCode ?? "",
         },
         recipient: {
           ...values.recipient,
+          name: values.recipient.name ?? "",
           phone: values.recipient.phone ? normalizeUaPhone(values.recipient.phone) : "",
+          countryCode: values.recipient.countryCode ?? "",
+          divisionNumber: values.recipient.divisionNumber ?? "",
+          city: values.recipient.city ?? "",
+          address: values.recipient.address ?? "",
+          postalCode: values.recipient.postalCode ?? "",
         },
         parcel: {
           ...values.parcel,
           cargoCategory: values.parcel.cargoCategory || DEFAULT_SHIPMENT_FORM_DATA.parcel.cargoCategory,
+          parcelDescription: values.parcel.parcelDescription ?? "",
         },
         invoice: {
           cost: values.invoice.cost,
